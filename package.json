@@ -1,0 +1,36 @@
+{
+  "name": "mizzleorm",
+  "version": "0.0.1",
+  "description": "A lightweight, fully type-safe MongoDB ORM in TypeScript, inspired by Drizzle ORM.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "example": "ts-node examples/user.ts"
+  },
+  "keywords": [
+    "mongodb",
+    "orm",
+    "typescript",
+    "zod",
+    "type-safe"
+  ],
+  "author": "dev-shahed",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/mongodb": "^4.0.7",
+    "@types/node": "^20.14.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3",
+    "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "mongodb": "^6.8.0",
+    "zod": "^3.23.8"
+  },
+  "directories": {
+    "example": "examples",
+    "test": "tests"
+  }
+}
