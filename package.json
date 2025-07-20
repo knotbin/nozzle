@@ -1,6 +1,6 @@
 {
   "name": "mizzleorm",
-  "version": "0.0.1",
+  "version": "1.0.1",
   "description": "A lightweight, fully type-safe MongoDB ORM in TypeScript, inspired by Drizzle ORM.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -32,5 +32,13 @@
   "directories": {
     "example": "examples",
     "test": "tests"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dev-shahed/mizzleorm.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dev-shahed/mizzleorm/issues"
+  },
+  "homepage": "https://github.com/dev-shahed/mizzleorm#readme"
 }
