@@ -1,6 +1,6 @@
 # mizzleORM
 
-A lightweight, fully type-safe MongoDB ORM in TypeScript, inspired by Drizzle ORM.
+A lightweight, fully type-safe MongoDB ODM in TypeScript, inspired by Drizzle ORM.
 
 ## Features
 
