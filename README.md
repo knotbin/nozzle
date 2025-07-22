@@ -2,7 +2,8 @@
 
 A lightweight, type-safe ODM for MongoDB in TypeScript — inspired by [Drizzle ORM](https://orm.drizzle.team/) and built for developers who value simplicity, transparency, and strong typings.
 
----
+
+> **Note:** MizzleORM requires MongoDB **4.2 or newer** and works best with the latest stable MongoDB server (6.x or newer) and the official [mongodb](https://www.npmjs.com/package/mongodb) Node.js driver (v6+).
 
 ## ✨ Features
 
@@ -21,6 +22,8 @@ npm install mizzleorm mongodb zod
 # or
 yarn add mizzleorm mongodb zod
 ```
+
+> If you need to upgrade your local MongoDB server, see: https://www.mongodb.com/docs/manual/administration/install-community/
 
 ---
 
@@ -51,12 +54,13 @@ export type User = z.infer<typeof userSchema>;
 // src/index.ts
 import { connect, disconnect, MongoModel, InferModel, InsertType } from 'mizzleorm';
 import { userSchema } from './schemas/user';
-import { ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb'; // v6+ driver recommended
 
 type User = InferModel<typeof userSchema>;
 type UserInsert = InsertType<typeof userSchema>;
 
 async function main() {
+  // Use the latest connection string format and options
   await connect('mongodb://localhost:27017', 'your_database_name');
   const UserModel = new MongoModel('users', userSchema);
 
@@ -85,7 +89,7 @@ const insertResult = await UserModel.insertOne(newUser);
 const users = await UserModel.find({ name: 'John Doe' });
 
 // Find one
-const found = await UserModel.findOne({ _id: new ObjectId(insertResult.insertedId) });
+const found = await UserModel.findOne({ _id: new ObjectId(insertResult.insertedId) }); // ObjectId from mongodb v6+
 
 // Update
 await UserModel.update({ name: 'John Doe' }, { age: 31 });
