@@ -1,6 +1,6 @@
 {
   "name": "mizzleorm",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "A lightweight, fully type-safe MongoDB ODM in TypeScript, inspired by Drizzle ORM.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
