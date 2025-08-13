@@ -23,7 +23,7 @@ simplicity, transparency, and strong typings.
 ## 📦 Installation
 
 ```bash
-deno add jsr:@nozzle/db
+deno add jsr:@nozzle/nozzle
 ```
 
 > If you need to upgrade your local MongoDB server, see:
@@ -42,7 +42,7 @@ import { defineModel } from "@nozzle/nozzle";
 
 export const userSchema = z.object({
   name: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   age: z.number().int().positive().optional(),
   createdAt: z.date().default(() => new Date()),
 });
@@ -62,7 +62,7 @@ import {
   InferModel,
   InsertType,
   MongoModel,
-} from "mizzleorm";
+} from "@nozzle/nozzle";
 import { userSchema } from "./schemas/user";
 import { ObjectId } from "mongodb"; // v6+ driver recommended
 
@@ -145,41 +145,6 @@ const paginated = await UserModel.findPaginated(
   { age: { $gte: 18 } },
   { skip: 0, limit: 10, sort: { age: -1 } },
 );
-```
-
----
-
-## 🧠 Project Structure
-
-```
-mizzleorm/
-├── src/
-│   ├── schema.ts         # Schema definition utility
-│   ├── model.ts          # MongoModel wrapper
-│   ├── client.ts         # MongoDB client connection
-│   └── index.ts          # Public API exports
-├── examples/             # Example usage files
-│   └── user.ts
-├── tests/                # Unit and integration tests
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
----
-
-## 🛠 Development
-
-### Build the library:
-
-```bash
-npm run build
-```
-
-### Run the example:
-
-```bash
-npm run example
 ```
 
 ---

@@ -11,7 +11,7 @@ import {
 // 1. Define your schema using Zod
 const userSchema = z.object({
   name: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   age: z.number().int().positive().optional(),
   createdAt: z.date().default(() => new Date()),
 });
