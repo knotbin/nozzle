@@ -1,13 +1,16 @@
-import { MongoClient, Db } from 'mongodb';
+import { type Db, MongoClient } from "mongodb";
 
-interface MongoConnection {
+interface Connection {
   client: MongoClient;
   db: Db;
 }
 
-let connection: MongoConnection | null = null;
+let connection: Connection | null = null;
 
-export async function connect(uri: string, dbName: string): Promise<MongoConnection> {
+export async function connect(
+  uri: string,
+  dbName: string,
+): Promise<Connection> {
   if (connection) {
     return connection;
   }
@@ -29,9 +32,7 @@ export async function disconnect(): Promise<void> {
 
 export function getDb(): Db {
   if (!connection) {
-    throw new Error('MongoDB not connected. Call connect() first.');
+    throw new Error("MongoDB not connected. Call connect() first.");
   }
   return connection.db;
 }
-
-
