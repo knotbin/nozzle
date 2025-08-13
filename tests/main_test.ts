@@ -1,23 +1,15 @@
 import { assertEquals, assertExists, assertRejects } from "jsr:@std/assert";
 import { z } from "zod";
-import {
-  connect,
-  defineModel,
-  disconnect,
-  type InferModel,
-  type InsertType,
-  Model,
-} from "../mod.ts";
+import { connect, disconnect, type InsertType, Model } from "../mod.ts";
 import { ObjectId } from "mongodb";
 
-const userSchema = defineModel(z.object({
+const userSchema = z.object({
   name: z.string(),
   email: z.email(),
   age: z.number().int().positive().optional(),
   createdAt: z.date().default(() => new Date()),
-}));
+});
 
-type User = InferModel<typeof userSchema>;
 type UserInsert = InsertType<typeof userSchema>;
 
 let UserModel: Model<typeof userSchema>;

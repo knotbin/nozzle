@@ -1,10 +1,6 @@
 import type { z } from "zod";
 import type { ObjectId } from "mongodb";
 
-export function defineModel<T extends z.ZodObject>(schema: T) {
-  return schema;
-}
-
 export type InferModel<T extends z.ZodObject> = z.infer<T> & {
   _id?: ObjectId;
 };

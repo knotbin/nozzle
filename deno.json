@@ -1,15 +1,12 @@
 {
-  "name": "mizzleorm",
+  "name": "@nozzle/nozzle",
   "version": "0.1.0",
   "exports": "./mod.ts",
   "license": "MIT",
   "tasks": {
     "build": "tsc",
-    "test": "deno run --allow-run --allow-read scripts/test.ts --all",
     "test:mock": "deno test tests/mock_test.ts",
-    "test:integration": "deno test --allow-net --allow-read --allow-write --allow-env --allow-sys tests/main_test.ts",
-    "test:watch": "deno run --allow-run --allow-read scripts/test.ts --mock --watch",
-    "example": "deno run --allow-net --allow-read --allow-write --allow-env --allow-sys examples/user.ts"
+    "test:watch": "deno run -A scripts/test.ts --mock --watch"
   },
   "imports": {
     "zod": "jsr:@zod/zod@^4.0.17",

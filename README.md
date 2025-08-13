@@ -38,14 +38,14 @@ deno add jsr:@nozzle/db
 ```ts
 // src/schemas/user.ts
 import { z } from "zod";
-import { defineModel } from "mizzleorm";
+import { defineModel } from "@nozzle/nozzle";
 
-export const userSchema = defineModel(z.object({
+export const userSchema = z.object({
   name: z.string(),
   email: z.string().email(),
   age: z.number().int().positive().optional(),
   createdAt: z.date().default(() => new Date()),
-}));
+});
 
 export type User = z.infer<typeof userSchema>;
 ```

@@ -2,7 +2,6 @@ import { z } from "zod";
 import { ObjectId } from "mongodb";
 import {
   connect,
-  defineModel,
   disconnect,
   type InferModel,
   type InsertType,
@@ -10,12 +9,12 @@ import {
 } from "../mod.ts";
 
 // 1. Define your schema using Zod
-const userSchema = defineModel(z.object({
+const userSchema = z.object({
   name: z.string(),
   email: z.string().email(),
   age: z.number().int().positive().optional(),
   createdAt: z.date().default(() => new Date()),
-}));
+});
 
 // Infer the TypeScript type from the Zod schema
 type User = InferModel<typeof userSchema>;
