@@ -23,9 +23,7 @@ simplicity, transparency, and strong typings.
 ## 📦 Installation
 
 ```bash
-npm install mizzleorm mongodb zod
-# or
-yarn add mizzleorm mongodb zod
+deno add jsr:@nozzle/db
 ```
 
 > If you need to upgrade your local MongoDB server, see:

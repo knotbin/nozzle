@@ -9,7 +9,7 @@
     "test:mock": "deno test tests/mock_test.ts",
     "test:integration": "deno test --allow-net --allow-read --allow-write --allow-env --allow-sys tests/main_test.ts",
     "test:watch": "deno run --allow-run --allow-read scripts/test.ts --mock --watch",
-    "example": "ts-node examples/user.ts"
+    "example": "deno run --allow-net --allow-read --allow-write --allow-env --allow-sys examples/user.ts"
   },
   "imports": {
     "zod": "jsr:@zod/zod@^4.0.17",

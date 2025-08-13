@@ -1,13 +1,13 @@
 import { z } from "zod";
+import { ObjectId } from "mongodb";
 import {
   connect,
   defineModel,
   disconnect,
-  InferModel,
-  InsertType,
-  MongoModel,
-} from "../src";
-import { ObjectId } from "mongodb";
+  type InferModel,
+  type InsertType,
+  Model,
+} from "../mod.ts";
 
 // 1. Define your schema using Zod
 const userSchema = defineModel(z.object({
@@ -24,11 +24,11 @@ type UserInsert = InsertType<typeof userSchema>;
 async function runExample() {
   try {
     // 3. Connect to MongoDB
-    await connect("mongodb://localhost:27017", "mizzleorm_example");
+    await connect("mongodb://localhost:27017", "nozzle_example");
     console.log("Connected to MongoDB");
 
-    // 2. Create a MongoModel for your collection
-    const UserModel = new MongoModel("users", userSchema);
+    // 2. Create a Model for your collection
+    const UserModel = new Model("users", userSchema);
 
     // Clean up previous data
     await UserModel.delete({});
@@ -76,4 +76,7 @@ async function runExample() {
   }
 }
 
-runExample();
+// Only run the example if this is the main module
+if (import.meta.main) {
+  runExample();
+}
