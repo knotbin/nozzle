@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type {
   Collection,
   DeleteResult,
@@ -12,80 +12,120 @@ import type {
 } from "mongodb";
 import { ObjectId } from "mongodb";
 import { getDb } from "./client.ts";
-import type { InsertType } from "./schema.ts";
 
-export class Model<T extends z.ZodObject> {
-  private collection: Collection<z.infer<T>>;
+export class Model<T extends StandardSchemaV1<unknown, Document>> {
+  private collection: Collection<StandardSchemaV1.InferOutput<T>>;
   private schema: T;
 
   constructor(collectionName: string, schema: T) {
-    this.collection = getDb().collection<z.infer<T>>(collectionName);
+    this.collection = getDb().collection<
+      StandardSchemaV1.InferOutput<T> & Document
+    >(
+      collectionName,
+    );
     this.schema = schema;
   }
 
-  async insertOne(data: InsertType<T>): Promise<InsertOneResult<z.infer<T>>> {
-    const validatedData = this.schema.parse(data);
+  async insertOne(
+    data: StandardSchemaV1.InferInput<T>,
+  ): Promise<InsertOneResult<StandardSchemaV1.InferOutput<T>>> {
+    const result = this.schema["~standard"].validate(data);
+    if (result instanceof Promise) {
+      throw new Error("Async validation not supported");
+    }
+    if (result.issues) {
+      throw new Error(`Validation failed: ${JSON.stringify(result.issues)}`);
+    }
     return await this.collection.insertOne(
-      validatedData as OptionalUnlessRequiredId<z.infer<T>>,
+      result.value as OptionalUnlessRequiredId<StandardSchemaV1.InferOutput<T>>,
     );
   }
 
   async insertMany(
-    data: InsertType<T>[],
-  ): Promise<InsertManyResult<z.infer<T>>> {
-    const validatedData = data.map((item) => this.schema.parse(item));
+    data: StandardSchemaV1.InferInput<T>[],
+  ): Promise<InsertManyResult<StandardSchemaV1.InferOutput<T>>> {
+    const validatedData = data.map((item) => {
+      const result = this.schema["~standard"].validate(item);
+      if (result instanceof Promise) {
+        throw new Error("Async validation not supported");
+      }
+      if (result.issues) {
+        throw new Error(`Validation failed: ${JSON.stringify(result.issues)}`);
+      }
+      return result.value;
+    });
     return await this.collection.insertMany(
-      validatedData as OptionalUnlessRequiredId<z.infer<T>>[],
+      validatedData as OptionalUnlessRequiredId<
+        StandardSchemaV1.InferOutput<T>
+      >[],
     );
   }
 
-  async find(query: Filter<z.infer<T>>): Promise<(WithId<z.infer<T>>)[]> {
+  async find(
+    query: Filter<StandardSchemaV1.InferOutput<T>>,
+  ): Promise<(WithId<StandardSchemaV1.InferOutput<T>>)[]> {
     return await this.collection.find(query).toArray();
   }
 
-  async findOne(query: Filter<z.infer<T>>): Promise<WithId<z.infer<T>> | null> {
+  async findOne(
+    query: Filter<StandardSchemaV1.InferOutput<T>>,
+  ): Promise<WithId<StandardSchemaV1.InferOutput<T>> | null> {
     return await this.collection.findOne(query);
   }
 
-  async findById(id: string | ObjectId): Promise<WithId<z.infer<T>> | null> {
+  async findById(
+    id: string | ObjectId,
+  ): Promise<WithId<StandardSchemaV1.InferOutput<T>> | null> {
     const objectId = typeof id === "string" ? new ObjectId(id) : id;
-    return await this.findOne({ _id: objectId } as Filter<z.infer<T>>);
+    return await this.findOne(
+      { _id: objectId } as Filter<StandardSchemaV1.InferOutput<T>>,
+    );
   }
 
   async update(
-    query: Filter<z.infer<T>>,
-    data: Partial<z.infer<T>>,
+    query: Filter<StandardSchemaV1.InferOutput<T>>,
+    data: Partial<StandardSchemaV1.InferOutput<T>>,
   ): Promise<UpdateResult> {
     return await this.collection.updateMany(query, { $set: data });
   }
 
   async updateOne(
-    query: Filter<z.infer<T>>,
-    data: Partial<z.infer<T>>,
+    query: Filter<StandardSchemaV1.InferOutput<T>>,
+    data: Partial<StandardSchemaV1.InferOutput<T>>,
   ): Promise<UpdateResult> {
     return await this.collection.updateOne(query, { $set: data });
   }
 
   async replaceOne(
-    query: Filter<z.infer<T>>,
-    data: InsertType<T>,
+    query: Filter<StandardSchemaV1.InferOutput<T>>,
+    data: StandardSchemaV1.InferInput<T>,
   ): Promise<UpdateResult> {
-    const validatedData = this.schema.parse(data);
+    const result = this.schema["~standard"].validate(data);
+    if (result instanceof Promise) {
+      throw new Error("Async validation not supported");
+    }
+    if (result.issues) {
+      throw new Error(`Validation failed: ${JSON.stringify(result.issues)}`);
+    }
     return await this.collection.replaceOne(
       query,
-      validatedData as OptionalUnlessRequiredId<z.infer<T>>,
+      result.value as OptionalUnlessRequiredId<StandardSchemaV1.InferOutput<T>>,
     );
   }
 
-  async delete(query: Filter<z.infer<T>>): Promise<DeleteResult> {
+  async delete(
+    query: Filter<StandardSchemaV1.InferOutput<T>>,
+  ): Promise<DeleteResult> {
     return await this.collection.deleteMany(query);
   }
 
-  async deleteOne(query: Filter<z.infer<T>>): Promise<DeleteResult> {
+  async deleteOne(
+    query: Filter<StandardSchemaV1.InferOutput<T>>,
+  ): Promise<DeleteResult> {
     return await this.collection.deleteOne(query);
   }
 
-  async count(query: Filter<z.infer<T>>): Promise<number> {
+  async count(query: Filter<StandardSchemaV1.InferOutput<T>>): Promise<number> {
     return await this.collection.countDocuments(query);
   }
 
@@ -95,9 +135,9 @@ export class Model<T extends z.ZodObject> {
 
   // Pagination support for find
   async findPaginated(
-    query: Filter<z.infer<T>>,
+    query: Filter<StandardSchemaV1.InferOutput<T>>,
     options: { skip?: number; limit?: number; sort?: Document } = {},
-  ): Promise<(WithId<z.infer<T>>)[]> {
+  ): Promise<(WithId<StandardSchemaV1.InferOutput<T>>)[]> {
     return await this.collection
       .find(query)
       .skip(options.skip ?? 0)
