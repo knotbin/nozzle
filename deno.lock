@@ -7,7 +7,6 @@
     "jsr:@std/internal@^1.0.10": "1.0.10",
     "jsr:@std/internal@^1.0.6": "1.0.10",
     "jsr:@std/testing@*": "1.0.15",
-    "jsr:@zod/zod@^4.0.17": "4.0.17",
     "npm:@types/node@*": "22.15.15",
     "npm:mongodb@^6.18.0": "6.18.0"
   },
@@ -30,9 +29,6 @@
         "jsr:@std/assert@^1.0.13",
         "jsr:@std/internal@^1.0.10"
       ]
-    },
-    "@zod/zod@4.0.17": {
-      "integrity": "4d9be90a1a3c16e09dad7ce25986379d7ab8ed5f5f843288509af6bf8def525f"
     }
   },
   "npm": {
@@ -110,7 +106,6 @@
   "workspace": {
     "dependencies": [
       "jsr:@standard-schema/spec@1",
-      "jsr:@zod/zod@^4.0.17",
       "npm:mongodb@^6.18.0"
     ]
   }

@@ -1,21 +1,18 @@
 # **Nozzle**
 
-A lightweight, type-safe ODM for MongoDB in TypeScript — inspired by
-[Drizzle ORM](https://orm.drizzle.team/) and built for developers who value
-simplicity, transparency, and strong typings.
+A lightweight, type-safe ODM for MongoDB in TypeScript
 
-> **Note:** Nozzle DB requires MongoDB **4.2 or newer** and works best with the
+> **Note:** Nozzle requires MongoDB **4.2 or newer** and works best with the
 > latest stable MongoDB server (6.x or newer) and the official
 > [mongodb](https://www.npmjs.com/package/mongodb) Node.js driver (v6+).
 
 ## ✨ Features
 
-- **Schema-first:** Define and validate collections using
-  [Zod](https://zod.dev/).
+- **Schema-first:** Define and validate collections using any schema validator
+  that supports [Standard Schema](https://standardschema.dev).
 - **Type-safe operations:** Auto-complete and strict typings for `insert`,
   `find`, `update`, and `delete`.
 - **Minimal & modular:** No decorators or magic. Just clean, composable APIs.
-- **Developer-friendly DX:** Great TypeScript support and IDE integration.
 - **Built on MongoDB native driver:** Zero overhead with full control.
 
 ---
@@ -33,12 +30,14 @@ deno add jsr:@nozzle/nozzle
 
 ## 🚀 Quick Start
 
+Examples below use Zod but any schema validator that supports
+[Standard Schema](https://standardschema.dev) will work.
+
 ### 1. Define a schema
 
 ```ts
 // src/schemas/user.ts
 import { z } from "zod";
-import { defineModel } from "@nozzle/nozzle";
 
 export const userSchema = z.object({
   name: z.string(),
@@ -61,7 +60,7 @@ import {
   disconnect,
   InferModel,
   InsertType,
-  MongoModel,
+  Model,
 } from "@nozzle/nozzle";
 import { userSchema } from "./schemas/user";
 import { ObjectId } from "mongodb"; // v6+ driver recommended
@@ -72,7 +71,7 @@ type UserInsert = InsertType<typeof userSchema>;
 async function main() {
   // Use the latest connection string format and options
   await connect("mongodb://localhost:27017", "your_database_name");
-  const UserModel = new MongoModel("users", userSchema);
+  const UserModel = new Model("users", userSchema);
 
   // Your operations go here
 

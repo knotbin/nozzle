@@ -1,16 +1,13 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { ObjectId } from "mongodb";
 
-export type InferModel<
-  T extends StandardSchemaV1<unknown, Record<string, unknown>>,
-> =
-  & StandardSchemaV1.InferOutput<T>
-  & {
-    _id?: ObjectId;
-  };
+type Schema = StandardSchemaV1<unknown, Record<string, unknown>>;
+type Infer<T extends Schema> = StandardSchemaV1.InferOutput<T>;
 
-export type InsertType<
-  T extends StandardSchemaV1<unknown, Record<string, unknown>>,
-> =
-  & Omit<StandardSchemaV1.InferOutput<T>, "createdAt">
-  & { createdAt?: Date };
+export type InferModel<T extends Schema> = Infer<T> & {
+  _id?: ObjectId;
+};
+
+export type InsertType<T extends Schema> = Omit<Infer<T>, "createdAt"> & {
+  createdAt?: Date;
+};

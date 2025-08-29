@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import { assertEquals, assertExists, assertRejects } from "jsr:@std/assert";
-import { z } from "zod";
+import { z } from "jsr:@zod/zod";
 
 // Mock implementation for demonstration
 class MockModel<T> {

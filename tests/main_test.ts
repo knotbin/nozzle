@@ -1,5 +1,5 @@
 import { assertEquals, assertExists, assertRejects } from "jsr:@std/assert";
-import { z } from "zod";
+import { z } from "jsr:@zod/zod";
 import { connect, disconnect, type InsertType, Model } from "../mod.ts";
 import { ObjectId } from "mongodb";
 
