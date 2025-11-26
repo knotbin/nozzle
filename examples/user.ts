@@ -1,4 +1,4 @@
-import { z } from "jsr:@zod/zod";
+import { z } from "@zod/zod";
 import { ObjectId } from "mongodb";
 import {
   connect,

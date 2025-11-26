@@ -8,8 +8,7 @@ A lightweight, type-safe ODM for MongoDB in TypeScript
 
 ## ✨ Features
 
-- **Schema-first:** Define and validate collections using any schema validator
-  that supports [Standard Schema](https://standardschema.dev).
+- **Schema-first:** Define and validate collections using [Zod](https://zod.dev).
 - **Type-safe operations:** Auto-complete and strict typings for `insert`,
   `find`, `update`, and `delete`.
 - **Minimal & modular:** No decorators or magic. Just clean, composable APIs.
@@ -30,14 +29,11 @@ deno add jsr:@nozzle/nozzle
 
 ## 🚀 Quick Start
 
-Examples below use Zod but any schema validator that supports
-[Standard Schema](https://standardschema.dev) will work.
-
 ### 1. Define a schema
 
 ```ts
 // src/schemas/user.ts
-import { z } from "zod";
+import { z } from "@zod/zod";
 
 export const userSchema = z.object({
   name: z.string(),

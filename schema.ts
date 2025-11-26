@@ -1,8 +1,8 @@
-import type { StandardSchemaV1 } from "@standard-schema/spec";
+import type { z } from "@zod/zod";
 import type { ObjectId } from "mongodb";
 
-type Schema = StandardSchemaV1<unknown, Record<string, unknown>>;
-type Infer<T extends Schema> = StandardSchemaV1.InferOutput<T>;
+type Schema = z.ZodObject;
+type Infer<T extends Schema> = z.infer<T>;
 
 export type InferModel<T extends Schema> = Infer<T> & {
   _id?: ObjectId;

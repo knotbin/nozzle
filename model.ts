@@ -1,4 +1,4 @@
-import type { StandardSchemaV1 } from "@standard-schema/spec";
+import type { z } from "@zod/zod";
 import type {
   Collection,
   DeleteResult,
@@ -13,47 +13,30 @@ import type {
 import { ObjectId } from "mongodb";
 import { getDb } from "./client.ts";
 
-// Type alias for cleaner code
-type Schema = StandardSchemaV1<unknown, Document>;
-type Infer<T extends Schema> = StandardSchemaV1.InferOutput<T>;
-type Input<T extends Schema> = StandardSchemaV1.InferInput<T>;
+// Type alias for cleaner code - Zod schema
+type Schema = z.ZodObject;
+type Infer<T extends Schema> = z.infer<T> & Document;
+type Input<T extends Schema> = z.input<T>;
 
-// Helper function to make StandardSchemaV1 validation as simple as Zod's parse()
-function parse<T extends Schema>(schema: T, data: unknown): Infer<T> {
-  const result = schema["~standard"].validate(data);
-  if (result instanceof Promise) {
-    throw new Error("Async validation not supported");
+// Helper function to validate data using Zod
+function parse<T extends Schema>(schema: T, data: Input<T>): Infer<T> {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    throw new Error(`Validation failed: ${JSON.stringify(result.error.issues)}`);
   }
-  if (result.issues) {
-    throw new Error(`Validation failed: ${JSON.stringify(result.issues)}`);
-  }
-  return result.value;
+  return result.data as Infer<T>;
 }
 
-// Helper function to validate partial update data
-// Uses schema.partial() if available (e.g., Zod)
+// Helper function to validate partial update data using Zod's partial()
 function parsePartial<T extends Schema>(
   schema: T,
-  data: Partial<Infer<T>>,
-): Partial<Infer<T>> {
-  // Get partial schema if available
-  const partialSchema = (
-    typeof schema === "object" &&
-    schema !== null &&
-    "partial" in schema &&
-    typeof (schema as { partial?: () => unknown }).partial === "function"
-  )
-    ? (schema as { partial: () => T }).partial()
-    : schema;
-
-  const result = partialSchema["~standard"].validate(data);
-  if (result instanceof Promise) {
-    throw new Error("Async validation not supported");
+  data: Partial<z.infer<T>>,
+): Partial<z.infer<T>> {
+  const result = schema.partial().safeParse(data);
+  if (!result.success) {
+    throw new Error(`Update validation failed: ${JSON.stringify(result.error.issues)}`);
   }
-  if (result.issues) {
-    throw new Error(`Update validation failed: ${JSON.stringify(result.issues)}`);
-  }
-  return result.value as Partial<Infer<T>>;
+  return result.data as Partial<z.infer<T>>;
 }
 
 export class Model<T extends Schema> {
@@ -61,7 +44,7 @@ export class Model<T extends Schema> {
   private schema: T;
 
   constructor(collectionName: string, schema: T) {
-    this.collection = getDb().collection<Infer<T> & Document>(collectionName);
+    this.collection = getDb().collection<Infer<T>>(collectionName);
     this.schema = schema;
   }
 
@@ -94,28 +77,30 @@ export class Model<T extends Schema> {
 
   async update(
     query: Filter<Infer<T>>,
-    data: Partial<Infer<T>>,
-  ): Promise<UpdateResult> {
+    data: Partial<z.infer<T>>,
+  ): Promise<UpdateResult<Infer<T>>> {
     const validatedData = parsePartial(this.schema, data);
-    return await this.collection.updateMany(query, { $set: validatedData });
+    return await this.collection.updateMany(query, { $set: validatedData as Partial<Infer<T>> });
   }
 
   async updateOne(
     query: Filter<Infer<T>>,
-    data: Partial<Infer<T>>,
-  ): Promise<UpdateResult> {
+    data: Partial<z.infer<T>>,
+  ): Promise<UpdateResult<Infer<T>>> {
     const validatedData = parsePartial(this.schema, data);
-    return await this.collection.updateOne(query, { $set: validatedData });
+    return await this.collection.updateOne(query, { $set: validatedData as Partial<Infer<T>> });
   }
 
   async replaceOne(
     query: Filter<Infer<T>>,
     data: Input<T>,
-  ): Promise<UpdateResult> {
+  ): Promise<UpdateResult<Infer<T>>> {
     const validatedData = parse(this.schema, data);
+    // Remove _id from validatedData for replaceOne (it will use the query's _id)
+    const { _id, ...withoutId } = validatedData as Infer<T> & { _id?: unknown };
     return await this.collection.replaceOne(
       query,
-      validatedData as OptionalUnlessRequiredId<Infer<T>>,
+      withoutId as Infer<T>,
     );
   }
 
