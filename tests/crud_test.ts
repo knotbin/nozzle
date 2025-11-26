@@ -1,41 +1,33 @@
-import { assertEquals, assertExists, assertRejects } from "jsr:@std/assert";
-import { z } from "jsr:@zod/zod";
-import { connect, disconnect, type InsertType, Model } from "../mod.ts";
+import { assertEquals, assertExists } from "@std/assert";
 import { ObjectId } from "mongodb";
-
-const userSchema = z.object({
-  name: z.string(),
-  email: z.email(),
-  age: z.number().int().positive().optional(),
-  createdAt: z.date().default(() => new Date()),
-});
-
-type UserInsert = InsertType<typeof userSchema>;
+import {
+  cleanupCollection,
+  createUserModel,
+  setupTestDb,
+  teardownTestDb,
+  type UserInsert,
+  type userSchema,
+} from "./utils.ts";
+import type { Model } from "../mod.ts";
 
 let UserModel: Model<typeof userSchema>;
-let isSetup = false;
 
-async function setup() {
-  if (!isSetup) {
-    await connect("mongodb://localhost:27017", "mizzleorm_test_db");
-    UserModel = new Model("users", userSchema);
-    isSetup = true;
-  }
-  // Clean up before each test
-  await UserModel.delete({});
-}
+Deno.test.beforeAll(async () => {
+  await setupTestDb();
+  UserModel = createUserModel();
+});
 
-async function teardown() {
-  if (isSetup) {
-    await disconnect();
-    isSetup = false;
-  }
-}
+Deno.test.beforeEach(async () => {
+  await cleanupCollection(UserModel);
+});
+
+Deno.test.afterAll(async () => {
+  await teardownTestDb();
+});
 
 Deno.test({
-  name: "Insert - should insert a new user successfully",
+  name: "CRUD: Insert - should insert a new user successfully",
   async fn() {
-    await setup();
 
     const newUser: UserInsert = {
       name: "Test User",
@@ -53,9 +45,8 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Find - should find the inserted user",
+  name: "CRUD: Find - should find the inserted user",
   async fn() {
-    await setup();
 
     // First insert a user for this test
     const newUser: UserInsert = {
@@ -80,9 +71,8 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Update - should update user data",
+  name: "CRUD: Update - should update user data",
   async fn() {
-    await setup();
 
     // Insert a user for this test
     const newUser: UserInsert = {
@@ -114,9 +104,8 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Delete - should delete user successfully",
+  name: "CRUD: Delete - should delete user successfully",
   async fn() {
-    await setup();
 
     // Insert a user for this test
     const newUser: UserInsert = {
@@ -146,32 +135,8 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Schema Validation - should validate user data",
+  name: "CRUD: Find Multiple - should find multiple users",
   async fn() {
-    await setup();
-
-    const invalidUser = {
-      name: "Invalid User",
-      email: "not-an-email", // Invalid email
-      age: -5, // Negative age
-    };
-
-    // This should throw an error due to schema validation
-    await assertRejects(
-      async () => {
-        await UserModel.insertOne(invalidUser as UserInsert);
-      },
-      Error,
-    );
-  },
-  sanitizeResources: false,
-  sanitizeOps: false,
-});
-
-Deno.test({
-  name: "Find Multiple - should find multiple users",
-  async fn() {
-    await setup();
 
     // Insert multiple users
     const users: UserInsert[] = [
@@ -193,37 +158,4 @@ Deno.test({
   sanitizeOps: false,
 });
 
-Deno.test({
-  name: "Default Values - should handle default createdAt",
-  async fn() {
-    await setup();
 
-    const newUser: UserInsert = {
-      name: "Default Test User",
-      email: "default@example.com",
-      // No createdAt provided - should use default
-    };
-
-    const insertResult = await UserModel.insertOne(newUser);
-    assertExists(insertResult.insertedId);
-
-    const foundUser = await UserModel.findOne({
-      _id: new ObjectId(insertResult.insertedId),
-    });
-
-    assertExists(foundUser);
-    assertExists(foundUser.createdAt);
-    assertEquals(foundUser.createdAt instanceof Date, true);
-  },
-  sanitizeResources: false,
-  sanitizeOps: false,
-});
-
-Deno.test({
-  name: "Teardown - Clean up and disconnect",
-  async fn() {
-    await teardown();
-  },
-  sanitizeResources: false,
-  sanitizeOps: false,
-});

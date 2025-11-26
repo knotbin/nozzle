@@ -30,6 +30,32 @@ function parse<T extends Schema>(schema: T, data: unknown): Infer<T> {
   return result.value;
 }
 
+// Helper function to validate partial update data
+// Uses schema.partial() if available (e.g., Zod)
+function parsePartial<T extends Schema>(
+  schema: T,
+  data: Partial<Infer<T>>,
+): Partial<Infer<T>> {
+  // Get partial schema if available
+  const partialSchema = (
+    typeof schema === "object" &&
+    schema !== null &&
+    "partial" in schema &&
+    typeof (schema as { partial?: () => unknown }).partial === "function"
+  )
+    ? (schema as { partial: () => T }).partial()
+    : schema;
+
+  const result = partialSchema["~standard"].validate(data);
+  if (result instanceof Promise) {
+    throw new Error("Async validation not supported");
+  }
+  if (result.issues) {
+    throw new Error(`Update validation failed: ${JSON.stringify(result.issues)}`);
+  }
+  return result.value as Partial<Infer<T>>;
+}
+
 export class Model<T extends Schema> {
   private collection: Collection<Infer<T>>;
   private schema: T;
@@ -70,14 +96,16 @@ export class Model<T extends Schema> {
     query: Filter<Infer<T>>,
     data: Partial<Infer<T>>,
   ): Promise<UpdateResult> {
-    return await this.collection.updateMany(query, { $set: data });
+    const validatedData = parsePartial(this.schema, data);
+    return await this.collection.updateMany(query, { $set: validatedData });
   }
 
   async updateOne(
     query: Filter<Infer<T>>,
     data: Partial<Infer<T>>,
   ): Promise<UpdateResult> {
-    return await this.collection.updateOne(query, { $set: data });
+    const validatedData = parsePartial(this.schema, data);
+    return await this.collection.updateOne(query, { $set: validatedData });
   }
 
   async replaceOne(
