@@ -1,5 +1,5 @@
 import { z } from "@zod/zod";
-import { connect, disconnect, type InsertType, Model } from "../mod.ts";
+import { connect, disconnect, type Input, Model } from "../mod.ts";
 import { MongoMemoryServer } from "mongodb-memory-server-core";
 
 export const userSchema = z.object({
@@ -9,7 +9,7 @@ export const userSchema = z.object({
   createdAt: z.date().default(() => new Date()),
 });
 
-export type UserInsert = InsertType<typeof userSchema>;
+export type UserInsert = Input<typeof userSchema>;
 
 let mongoServer: MongoMemoryServer | null = null;
 let isSetup = false;

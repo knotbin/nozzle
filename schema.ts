@@ -8,6 +8,4 @@ export type InferModel<T extends Schema> = Infer<T> & {
   _id?: ObjectId;
 };
 
-export type InsertType<T extends Schema> = Omit<Infer<T>, "createdAt"> & {
-  createdAt?: Date;
-};
+export type Input<T extends Schema> = z.input<T>;

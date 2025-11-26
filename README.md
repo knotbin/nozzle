@@ -55,14 +55,14 @@ import {
   connect,
   disconnect,
   InferModel,
-  InsertType,
+  Input,
   Model,
 } from "@nozzle/nozzle";
 import { userSchema } from "./schemas/user";
 import { ObjectId } from "mongodb"; // v6+ driver recommended
 
 type User = InferModel<typeof userSchema>;
-type UserInsert = InsertType<typeof userSchema>;
+type UserInsert = Input<typeof userSchema>;
 
 async function main() {
   // Use the latest connection string format and options
@@ -83,10 +83,12 @@ main().catch(console.error);
 
 ```ts
 // Insert one
+// Note: createdAt has a default, so it's optional in the input type
 const newUser: UserInsert = {
   name: "John Doe",
   email: "john.doe@example.com",
   age: 30,
+  // createdAt is optional because of z.date().default(() => new Date())
 };
 const insertResult = await UserModel.insertOne(newUser);
 
@@ -140,6 +142,35 @@ const paginated = await UserModel.findPaginated(
   { age: { $gte: 18 } },
   { skip: 0, limit: 10, sort: { age: -1 } },
 );
+
+// Index Management
+// Create a unique index
+await UserModel.createIndex({ email: 1 }, { unique: true });
+
+// Create a compound index
+await UserModel.createIndex({ name: 1, age: -1 });
+
+// Create multiple indexes at once
+await UserModel.createIndexes([
+  { key: { email: 1 }, name: "email_idx", unique: true },
+  { key: { name: 1, age: -1 }, name: "name_age_idx" },
+]);
+
+// List all indexes
+const indexes = await UserModel.listIndexes();
+console.log("Indexes:", indexes);
+
+// Check if index exists
+const exists = await UserModel.indexExists("email_idx");
+
+// Drop an index
+await UserModel.dropIndex("email_idx");
+
+// Sync indexes (useful for migrations - creates missing, updates changed)
+await UserModel.syncIndexes([
+  { key: { email: 1 }, name: "email_idx", unique: true },
+  { key: { createdAt: 1 }, name: "created_at_idx" },
+]);
 ```
 
 ---

@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "@std/assert";
+import { assert, assertExists } from "@std/assert";
 import { ObjectId } from "mongodb";
 import {
   cleanupCollection,
@@ -44,7 +44,7 @@ Deno.test({
 
     assertExists(foundUser);
     assertExists(foundUser.createdAt);
-    assertEquals(foundUser.createdAt instanceof Date, true);
+    assert(foundUser.createdAt instanceof Date);
   },
   sanitizeResources: false,
   sanitizeOps: false,

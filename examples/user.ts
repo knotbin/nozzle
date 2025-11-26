@@ -4,7 +4,7 @@ import {
   connect,
   disconnect,
   type InferModel,
-  type InsertType,
+  type Input,
   Model,
 } from "../mod.ts";
 
@@ -18,7 +18,7 @@ const userSchema = z.object({
 
 // Infer the TypeScript type from the Zod schema
 type User = InferModel<typeof userSchema>;
-type UserInsert = InsertType<typeof userSchema>;
+type UserInsert = Input<typeof userSchema>;
 
 async function runExample() {
   try {

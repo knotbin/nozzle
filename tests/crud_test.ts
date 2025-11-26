@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { ObjectId } from "mongodb";
 import {
   cleanupCollection,
@@ -152,7 +152,7 @@ Deno.test({
     // Find all users with age >= 25
     const foundUsers = await UserModel.find({ age: { $gte: 25 } });
 
-    assertEquals(foundUsers.length >= 2, true);
+    assert(foundUsers.length >= 2);
   },
   sanitizeResources: false,
   sanitizeOps: false,
