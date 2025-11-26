@@ -65,8 +65,20 @@ type User = InferModel<typeof userSchema>;
 type UserInsert = Input<typeof userSchema>;
 
 async function main() {
-  // Use the latest connection string format and options
+  // Basic connection
   await connect("mongodb://localhost:27017", "your_database_name");
+  
+  // Or with connection pooling options
+  await connect("mongodb://localhost:27017", "your_database_name", {
+    clientOptions: {
+      maxPoolSize: 10,        // Maximum connections in pool
+      minPoolSize: 2,          // Minimum connections in pool
+      maxIdleTimeMS: 30000,    // Close idle connections after 30s
+      connectTimeoutMS: 10000, // Connection timeout
+      socketTimeoutMS: 45000,  // Socket timeout
+    }
+  });
+  
   const UserModel = new Model("users", userSchema);
 
   // Your operations go here
