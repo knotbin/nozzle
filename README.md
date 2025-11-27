@@ -187,6 +187,33 @@ await UserModel.syncIndexes([
 
 ---
 
+## 🗺️ Roadmap
+
+### 🔴 Critical (Must Have)
+- [ ] Transactions support
+- [ ] Connection retry logic
+- [ ] Improved error handling
+- [x] Connection health checks
+- [x] Connection pooling configuration
+
+### 🟡 Important (Should Have)
+- [x] Index management
+- [ ] Middleware/hooks system
+- [ ] Relationship/population support
+- [ ] Better default value handling
+- [ ] Comprehensive edge case testing
+
+### 🟢 Nice to Have
+- [x] Pagination support
+- [ ] Plugin system
+- [ ] Query builder API
+- [ ] Virtual fields
+- [ ] Document/static methods
+
+For detailed production readiness assessment, see [PRODUCTION_READINESS_ASSESSMENT.md](./PRODUCTION_READINESS_ASSESSMENT.md).
+
+---
+
 ## 📄 License
 
 MIT — use it freely and contribute back if you'd like!

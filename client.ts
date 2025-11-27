@@ -7,30 +7,40 @@ interface Connection {
 
 let connection: Connection | null = null;
 
-export interface ConnectOptions {
-  /**
-   * MongoDB connection options (pooling, timeouts, etc.)
-   * See: https://mongodb.github.io/node-mongodb-native/6.18/interfaces/MongoClientOptions.html
-   */
-  clientOptions?: MongoClientOptions;
+export interface ConnectOptions extends MongoClientOptions {};
+
+/**
+ * Health check details of the MongoDB connection
+ * 
+ * @property healthy - Overall health status of the connection
+ * @property connected - Whether a connection is established
+ * @property responseTimeMs - Response time in milliseconds (if connection is healthy)
+ * @property error - Error message if health check failed
+ * @property timestamp - Timestamp when health check was performed
+ */
+export interface HealthCheckResult {
+  healthy: boolean;
+  connected: boolean;
+  responseTimeMs?: number;
+  error?: string;
+  timestamp: Date;
 }
 
 /**
- * Connect to MongoDB with connection pooling and other options
+ * Connect to MongoDB with options including connection pooling
  * 
- * The MongoDB driver handles connection pooling automatically.
- * Configure pooling via `clientOptions`:
+ * @param uri - MongoDB connection string
+ * @param dbName - Name of the database to connect to
+ * @param options - Connection options including connection pooling
  * 
  * @example
  * ```ts
  * await connect("mongodb://localhost:27017", "mydb", {
- *   clientOptions: {
- *     maxPoolSize: 10,        // Maximum connections in pool
- *     minPoolSize: 2,          // Minimum connections in pool
- *     maxIdleTimeMS: 30000,    // Close idle connections after 30s
- *     connectTimeoutMS: 10000, // Connection timeout
- *     socketTimeoutMS: 45000,  // Socket timeout
- *   }
+ *   maxPoolSize: 10,
+ *   minPoolSize: 2,
+ *   maxIdleTimeMS: 30000,
+ *   connectTimeoutMS: 10000,
+ *   socketTimeoutMS: 45000,
  * });
  * ```
  */
@@ -43,7 +53,7 @@ export async function connect(
     return connection;
   }
 
-  const client = new MongoClient(uri, options?.clientOptions);
+  const client = new MongoClient(uri, options);
   await client.connect();
   const db = client.db(dbName);
 
@@ -63,4 +73,56 @@ export function getDb(): Db {
     throw new Error("MongoDB not connected. Call connect() first.");
   }
   return connection.db;
+}
+
+/**
+ * Check the health of the MongoDB connection
+ * 
+ * Performs a ping operation to verify the database is responsive
+ * and returns detailed health information including response time.
+ * 
+ * @example
+ * ```ts
+ * const health = await healthCheck();
+ * if (health.healthy) {
+ *   console.log(`Database healthy (${health.responseTimeMs}ms)`);
+ * } else {
+ *   console.error(`Database unhealthy: ${health.error}`);
+ * }
+ * ```
+ */
+export async function healthCheck(): Promise<HealthCheckResult> {
+  const timestamp = new Date();
+
+  // Check if connection exists
+  if (!connection) {
+    return {
+      healthy: false,
+      connected: false,
+      error: "No active connection. Call connect() first.",
+      timestamp,
+    };
+  }
+
+  try {
+    // Measure ping response time
+    const startTime = performance.now();
+    await connection.db.admin().ping();
+    const endTime = performance.now();
+    const responseTimeMs = Math.round(endTime - startTime);
+
+    return {
+      healthy: true,
+      connected: true,
+      responseTimeMs,
+      timestamp,
+    };
+  } catch (error) {
+    return {
+      healthy: false,
+      connected: true,
+      error: error instanceof Error ? error.message : String(error),
+      timestamp,
+    };
+  }
 }

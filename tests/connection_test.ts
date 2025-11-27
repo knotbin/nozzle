@@ -1,5 +1,5 @@
-import { assert, assertEquals } from "@std/assert";
-import { connect, disconnect, type ConnectOptions } from "../mod.ts";
+import { assert, assertEquals, assertExists } from "@std/assert";
+import { connect, disconnect, healthCheck, type ConnectOptions } from "../mod.ts";
 import { MongoMemoryServer } from "mongodb-memory-server-core";
 
 let mongoServer: MongoMemoryServer | null = null;
@@ -42,12 +42,10 @@ Deno.test({
   async fn() {
     const uri = await setupTestServer();
     const options: ConnectOptions = {
-      clientOptions: {
-        maxPoolSize: 10,
-        minPoolSize: 2,
-        maxIdleTimeMS: 30000,
-        connectTimeoutMS: 5000,
-      },
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      maxIdleTimeMS: 30000,
+      connectTimeoutMS: 5000,
     };
     
     const connection = await connect(uri, "test_db", options);
@@ -108,9 +106,7 @@ Deno.test({
   async fn() {
     const uri = await setupTestServer();
     const options: ConnectOptions = {
-      clientOptions: {
-        maxPoolSize: 5,
-      },
+      maxPoolSize: 5,
     };
     
     const connection = await connect(uri, "test_db", options);
@@ -138,6 +134,104 @@ Deno.test({
     // Connect to second database
     const connection2 = await connect(uri, "db2");
     assertEquals(connection2.db.databaseName, "db2");
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
+Deno.test({
+  name: "Health Check: should return unhealthy when not connected",
+  async fn() {
+    const result = await healthCheck();
+    
+    assertEquals(result.healthy, false);
+    assertEquals(result.connected, false);
+    assertExists(result.error);
+    assert(result.error?.includes("No active connection"));
+    assertExists(result.timestamp);
+    assertEquals(result.responseTimeMs, undefined);
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
+Deno.test({
+  name: "Health Check: should return healthy when connected",
+  async fn() {
+    const uri = await setupTestServer();
+    await connect(uri, "test_db");
+    
+    const result = await healthCheck();
+    
+    assertEquals(result.healthy, true);
+    assertEquals(result.connected, true);
+    assertExists(result.responseTimeMs);
+    assert(result.responseTimeMs! >= 0);
+    assertEquals(result.error, undefined);
+    assertExists(result.timestamp);
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
+Deno.test({
+  name: "Health Check: should measure response time",
+  async fn() {
+    const uri = await setupTestServer();
+    await connect(uri, "test_db");
+    
+    const result = await healthCheck();
+    
+    assertEquals(result.healthy, true);
+    assertExists(result.responseTimeMs);
+    // Response time should be reasonable (less than 1 second for in-memory MongoDB)
+    assert(result.responseTimeMs! < 1000);
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
+Deno.test({
+  name: "Health Check: should work multiple times consecutively",
+  async fn() {
+    const uri = await setupTestServer();
+    await connect(uri, "test_db");
+    
+    // Run health check multiple times
+    const results = await Promise.all([
+      healthCheck(),
+      healthCheck(),
+      healthCheck(),
+    ]);
+    
+    // All should be healthy
+    for (const result of results) {
+      assertEquals(result.healthy, true);
+      assertEquals(result.connected, true);
+      assertExists(result.responseTimeMs);
+    }
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
+Deno.test({
+  name: "Health Check: should detect disconnection",
+  async fn() {
+    const uri = await setupTestServer();
+    await connect(uri, "test_db");
+    
+    // First check should be healthy
+    let result = await healthCheck();
+    assertEquals(result.healthy, true);
+    
+    // Disconnect
+    await disconnect();
+    
+    // Second check should be unhealthy
+    result = await healthCheck();
+    assertEquals(result.healthy, false);
+    assertEquals(result.connected, false);
   },
   sanitizeResources: false,
   sanitizeOps: false,
