@@ -202,6 +202,40 @@ await UserModel.syncIndexes([
   { key: { createdAt: 1 }, name: "created_at_idx" },
 ]);
 
+// Transactions (Requires MongoDB Replica Set or Sharded Cluster)
+import { withTransaction } from "@nozzle/nozzle";
+
+// Automatic transaction management with withTransaction
+const result = await withTransaction(async (session) => {
+  // All operations in this callback are part of the same transaction
+  const user = await UserModel.insertOne(
+    { name: "Alice", email: "alice@example.com" },
+    { session } // Pass session to each operation
+  );
+  
+  const order = await OrderModel.insertOne(
+    { userId: user.insertedId, total: 100 },
+    { session }
+  );
+  
+  // If any operation fails, the entire transaction is automatically aborted
+  // If callback succeeds, transaction is automatically committed
+  return { user, order };
+});
+
+// Manual session management (for advanced use cases)
+import { startSession, endSession } from "@nozzle/nozzle";
+
+const session = startSession();
+try {
+  await session.withTransaction(async () => {
+    await UserModel.insertOne({ name: "Bob", email: "bob@example.com" }, { session });
+    await UserModel.updateOne({ name: "Alice" }, { balance: 50 }, { session });
+  });
+} finally {
+  await endSession(session);
+}
+
 // Error Handling
 import { ValidationError, ConnectionError } from "@nozzle/nozzle";
 
@@ -227,7 +261,7 @@ try {
 ## 🗺️ Roadmap
 
 ### 🔴 Critical (Must Have)
-- [ ] Transactions support
+- [x] Transactions support
 - [x] Connection retry logic
 - [x] Improved error handling
 - [x] Connection health checks

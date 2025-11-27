@@ -10,10 +10,18 @@ import type {
   IndexSpecification,
   InsertManyResult,
   InsertOneResult,
+  InsertOneOptions,
+  FindOptions,
+  UpdateOptions,
+  ReplaceOptions,
+  DeleteOptions,
+  CountDocumentsOptions,
+  AggregateOptions,
   ListIndexesOptions,
   OptionalUnlessRequiredId,
   UpdateResult,
   WithId,
+  BulkWriteOptions,
 } from "mongodb";
 import { ObjectId } from "mongodb";
 import { getDb } from "./client.ts";
@@ -81,52 +89,80 @@ export class Model<T extends Schema> {
     this.schema = schema;
   }
 
-  async insertOne(data: Input<T>): Promise<InsertOneResult<Infer<T>>> {
+  async insertOne(
+    data: Input<T>,
+    options?: InsertOneOptions
+  ): Promise<InsertOneResult<Infer<T>>> {
     const validatedData = parse(this.schema, data);
     return await this.collection.insertOne(
       validatedData as OptionalUnlessRequiredId<Infer<T>>,
+      options
     );
   }
 
-  async insertMany(data: Input<T>[]): Promise<InsertManyResult<Infer<T>>> {
+  async insertMany(
+    data: Input<T>[],
+    options?: BulkWriteOptions
+  ): Promise<InsertManyResult<Infer<T>>> {
     const validatedData = data.map((item) => parse(this.schema, item));
     return await this.collection.insertMany(
       validatedData as OptionalUnlessRequiredId<Infer<T>>[],
+      options
     );
   }
 
-  async find(query: Filter<Infer<T>>): Promise<(WithId<Infer<T>>)[]> {
-    return await this.collection.find(query).toArray();
+  async find(
+    query: Filter<Infer<T>>,
+    options?: FindOptions
+  ): Promise<(WithId<Infer<T>>)[]> {
+    return await this.collection.find(query, options).toArray();
   }
 
-  async findOne(query: Filter<Infer<T>>): Promise<WithId<Infer<T>> | null> {
-    return await this.collection.findOne(query);
+  async findOne(
+    query: Filter<Infer<T>>,
+    options?: FindOptions
+  ): Promise<WithId<Infer<T>> | null> {
+    return await this.collection.findOne(query, options);
   }
 
-  async findById(id: string | ObjectId): Promise<WithId<Infer<T>> | null> {
+  async findById(
+    id: string | ObjectId,
+    options?: FindOptions
+  ): Promise<WithId<Infer<T>> | null> {
     const objectId = typeof id === "string" ? new ObjectId(id) : id;
-    return await this.findOne({ _id: objectId } as Filter<Infer<T>>);
+    return await this.findOne({ _id: objectId } as Filter<Infer<T>>, options);
   }
 
   async update(
     query: Filter<Infer<T>>,
     data: Partial<z.infer<T>>,
+    options?: UpdateOptions
   ): Promise<UpdateResult<Infer<T>>> {
     const validatedData = parsePartial(this.schema, data);
-    return await this.collection.updateMany(query, { $set: validatedData as Partial<Infer<T>> });
+    return await this.collection.updateMany(
+      query, 
+      { $set: validatedData as Partial<Infer<T>> },
+      options
+    );
   }
 
   async updateOne(
     query: Filter<Infer<T>>,
     data: Partial<z.infer<T>>,
+    options?: UpdateOptions
   ): Promise<UpdateResult<Infer<T>>> {
     const validatedData = parsePartial(this.schema, data);
-    return await this.collection.updateOne(query, { $set: validatedData as Partial<Infer<T>> });
+    return await this.collection.updateOne(
+      query, 
+      { $set: validatedData as Partial<Infer<T>> },
+      options
+    );
   }
 
   async replaceOne(
     query: Filter<Infer<T>>,
     data: Input<T>,
+    options?: ReplaceOptions
   ): Promise<UpdateResult<Infer<T>>> {
     const validatedData = parseReplace(this.schema, data);
     // Remove _id from validatedData for replaceOne (it will use the query's _id)
@@ -134,23 +170,36 @@ export class Model<T extends Schema> {
     return await this.collection.replaceOne(
       query,
       withoutId as Infer<T>,
+      options
     );
   }
 
-  async delete(query: Filter<Infer<T>>): Promise<DeleteResult> {
-    return await this.collection.deleteMany(query);
+  async delete(
+    query: Filter<Infer<T>>,
+    options?: DeleteOptions
+  ): Promise<DeleteResult> {
+    return await this.collection.deleteMany(query, options);
   }
 
-  async deleteOne(query: Filter<Infer<T>>): Promise<DeleteResult> {
-    return await this.collection.deleteOne(query);
+  async deleteOne(
+    query: Filter<Infer<T>>,
+    options?: DeleteOptions
+  ): Promise<DeleteResult> {
+    return await this.collection.deleteOne(query, options);
   }
 
-  async count(query: Filter<Infer<T>>): Promise<number> {
-    return await this.collection.countDocuments(query);
+  async count(
+    query: Filter<Infer<T>>,
+    options?: CountDocumentsOptions
+  ): Promise<number> {
+    return await this.collection.countDocuments(query, options);
   }
 
-  async aggregate(pipeline: Document[]): Promise<Document[]> {
-    return await this.collection.aggregate(pipeline).toArray();
+  async aggregate(
+    pipeline: Document[],
+    options?: AggregateOptions
+  ): Promise<Document[]> {
+    return await this.collection.aggregate(pipeline, options).toArray();
   }
 
   // Pagination support for find

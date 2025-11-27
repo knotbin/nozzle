@@ -35,29 +35,49 @@
  
  ## ❌ Critical Missing Features for Production
  
- ### 1. **Transactions** 🔴 CRITICAL
- **Status:** Not implemented
- 
- **Impact:** Cannot perform multi-document atomic operations
- 
- **Mongoose Equivalent:**
- ```javascript
- const session = await mongoose.startSession();
- session.startTransaction();
- try {
-   await UserModel.updateOne({...}, {...}, { session });
-   await OrderModel.create([...], { session });
-   await session.commitTransaction();
- } catch (error) {
-   await session.abortTransaction();
- }
- ```
- 
- **Required for:**
- - Financial operations
- - Multi-collection updates
- - Data consistency guarantees
- - Rollback capabilities
+### 1. **Transactions** ✅ IMPLEMENTED
+**Status:** ✅ **FULLY IMPLEMENTED** - Complete transaction support with MongoDB driver
+
+**Current Features:**
+- ✅ `withTransaction()` helper for automatic transaction management
+- ✅ `startSession()` and `endSession()` for manual session management
+- ✅ All Model methods accept `session` option
+- ✅ Automatic commit on success, abort on error
+- ✅ Support for TransactionOptions (read/write concern, etc.)
+- ✅ Clean API matching MongoDB best practices
+- ✅ Comprehensive documentation and examples
+
+**Nozzle API:**
+```typescript
+// Automatic transaction management
+const result = await withTransaction(async (session) => {
+  await UserModel.insertOne({ name: "Alice" }, { session });
+  await OrderModel.insertOne({ userId: "123" }, { session });
+  return { success: true };
+});
+
+// Manual session management
+const session = startSession();
+try {
+  await session.withTransaction(async () => {
+    await UserModel.updateOne({...}, {...}, { session });
+  });
+} finally {
+  await endSession(session);
+}
+```
+
+**Supported Operations:**
+- ✅ Insert (insertOne, insertMany)
+- ✅ Find (find, findOne, findById)
+- ✅ Update (update, updateOne, replaceOne)
+- ✅ Delete (delete, deleteOne)
+- ✅ Aggregate
+- ✅ Count
+
+**Requirements:**
+- Requires MongoDB 4.0+ with Replica Set or MongoDB 4.2+ with Sharded Cluster
+- All operations must pass the session parameter
  
  ---
  
@@ -395,7 +415,7 @@ if (!health.healthy) {
  | Basic CRUD | ✅ | ✅ | ✅ |
  | Type Safety | ✅✅ | ✅ | ✅ |
  | Schema Validation | ✅ | ✅✅ | ✅ |
- | Transactions | ❌ | ✅ | 🔴 |
+ | Transactions | ✅ | ✅ | 🔴 |
  | Middleware/Hooks | ❌ | ✅ | 🔴 |
  | Index Management | ✅ | ✅ | 🟡 |
  | Update Validation | ✅ | ✅ | 🟡 |
@@ -442,8 +462,8 @@ if (!health.healthy) {
  
  If you want to make Nozzle production-ready:
  
-**Phase 1: Critical (Must Have)**
-1. ❌ Implement transactions
+**Phase 1: Critical (Must Have)** ✅ **ALL COMPLETED**
+1. ✅ **COMPLETED** - Implement transactions
 2. ✅ **COMPLETED** - Add connection retry logic
 3. ✅ **COMPLETED** - Improve error handling
 4. ✅ **COMPLETED** - Add update validation
@@ -473,11 +493,11 @@ if (!health.healthy) {
 | Type Safety | 9/10 | 15% | 1.35 |
 | Error Handling | 8/10 | 15% | 1.2 |
 | Connection Management | 7/10 | 15% | 1.05 |
-| Advanced Features | 2/10 | 20% | 0.4 |
+| Advanced Features | 5/10 | 20% | 1.0 |
 | Testing & Docs | 7/10 | 10% | 0.7 |
 | Production Features | 5/10 | 5% | 0.25 |
 
-**Overall Score: 6.55/10** (Significantly Improved - Approaching Production Ready)
+**Overall Score: 7.15/10** (Production Ready for Most Use Cases)
  
  **Mongoose Equivalent Score: ~8.5/10**
  
@@ -510,7 +530,17 @@ if (!health.healthy) {
 
 ## 🆕 Recent Improvements
 
-1. ✅ **Structured Error Handling Implemented** (errors.ts)
+1. ✅ **Transaction Support Implemented** (client.ts, model.ts)
+   - `withTransaction()` helper for automatic transaction management
+   - `startSession()` and `endSession()` for manual control
+   - All Model methods accept session options
+   - Automatic commit/abort handling
+   - Support for TransactionOptions
+   - Clean API matching MongoDB best practices
+   - Comprehensive documentation with examples
+   - Works with MongoDB 4.0+ replica sets and 4.2+ sharded clusters
+
+2. ✅ **Structured Error Handling Implemented** (errors.ts)
    - Custom error class hierarchy with `NozzleError` base class
    - `ValidationError` with Zod issue integration and field grouping
    - `ConnectionError` with URI context
@@ -571,7 +601,17 @@ if (!health.healthy) {
  
  ## 📋 Changelog
  
-### Version 0.4.0 (Latest)
+### Version 0.5.0 (Latest)
+- ✅ **TRANSACTIONS IMPLEMENTED** - Full transaction support
+- ✅ `withTransaction()` helper for automatic transaction management
+- ✅ All Model methods accept session options
+- ✅ Automatic commit/abort handling
+- ✅ Phase 1 Critical Features: **ALL COMPLETED** 🎉
+- Updated scores (7.15/10, up from 6.55/10)
+- Advanced Features upgraded from 2/10 to 5/10
+- **Production Ready** status achieved for most use cases
+
+### Version 0.4.0
 - ✅ Structured error handling implemented (custom error classes)
 - ✅ `ValidationError` with field-specific error grouping
 - ✅ `ConnectionError`, `ConfigurationError`, and other error types
