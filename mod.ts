@@ -1,4 +1,4 @@
-export { type InferModel, type Input } from "./schema.ts";
+export type { Schema, Infer, Input } from "./types.ts";
 export { 
   connect, 
   disconnect, 
@@ -8,8 +8,8 @@ export {
   withTransaction,
   type ConnectOptions, 
   type HealthCheckResult 
-} from "./client.ts";
-export { Model } from "./model.ts";
+} from "./client/index.ts";
+export { Model } from "./model/index.ts";
 export {
   NozzleError,
   ValidationError,

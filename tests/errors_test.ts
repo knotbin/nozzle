@@ -46,7 +46,7 @@ Deno.test({
     
     await assertRejects(
       async () => {
-        await UserModel.insertOne({ name: "", email: "invalid" } as any);
+        await UserModel.insertOne({ name: "", email: "invalid" });
       },
       ValidationError,
       "Validation failed on insert"
@@ -65,7 +65,7 @@ Deno.test({
     const UserModel = new Model("users", userSchema);
     
     try {
-      await UserModel.insertOne({ name: "", email: "invalid" } as any);
+      await UserModel.insertOne({ name: "", email: "invalid" });
       throw new Error("Should have thrown ValidationError");
     } catch (error) {
       assert(error instanceof ValidationError);
@@ -116,7 +116,7 @@ Deno.test({
     
     await assertRejects(
       async () => {
-        await UserModel.replaceOne({ name: "Test" }, { name: "", email: "invalid" } as any);
+        await UserModel.replaceOne({ name: "Test" }, { name: "", email: "invalid" });
       },
       ValidationError,
       "Validation failed on replace"
@@ -191,7 +191,7 @@ Deno.test({
     // Make sure not connected
     await disconnect();
     
-    const { getDb } = await import("../client.ts");
+    const { getDb } = await import("../client/connection.ts");
     
     try {
       getDb();
@@ -218,7 +218,7 @@ Deno.test({
         name: "",
         email: "not-an-email",
         age: -10,
-      } as any);
+      });
       throw new Error("Should have thrown ValidationError");
     } catch (error) {
       assert(error instanceof ValidationError);
@@ -249,7 +249,7 @@ Deno.test({
     const UserModel = new Model("users", userSchema);
     
     try {
-      await UserModel.insertOne({ name: "", email: "invalid" } as any);
+      await UserModel.insertOne({ name: "", email: "invalid" });
     } catch (error) {
       assert(error instanceof ValidationError);
       assertEquals(error.name, "ValidationError");

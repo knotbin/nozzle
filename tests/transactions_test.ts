@@ -28,7 +28,7 @@ Deno.test.afterEach(async () => {
   // Clean up database
   if (replSet) {
     try {
-      const { getDb } = await import("../client.ts");
+      const { getDb } = await import("../client/connection.ts");
       const db = getDb();
       await db.dropDatabase();
     } catch {
