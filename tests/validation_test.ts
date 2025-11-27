@@ -69,7 +69,7 @@ Deno.test({
         );
       },
       Error,
-      "Update validation failed",
+      "Validation failed on update",
     );
   },
   sanitizeResources: false,
@@ -98,7 +98,7 @@ Deno.test({
         );
       },
       Error,
-      "Update validation failed",
+      "Validation failed on update",
     );
   },
   sanitizeResources: false,
@@ -127,7 +127,7 @@ Deno.test({
         );
       },
       Error,
-      "Update validation failed",
+      "Validation failed on update",
     );
   },
   sanitizeResources: false,

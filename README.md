@@ -70,13 +70,31 @@ async function main() {
   
   // Or with connection pooling options
   await connect("mongodb://localhost:27017", "your_database_name", {
-    clientOptions: {
-      maxPoolSize: 10,        // Maximum connections in pool
-      minPoolSize: 2,          // Minimum connections in pool
-      maxIdleTimeMS: 30000,    // Close idle connections after 30s
-      connectTimeoutMS: 10000, // Connection timeout
-      socketTimeoutMS: 45000,  // Socket timeout
-    }
+    maxPoolSize: 10,        // Maximum connections in pool
+    minPoolSize: 2,          // Minimum connections in pool
+    maxIdleTimeMS: 30000,    // Close idle connections after 30s
+    connectTimeoutMS: 10000, // Connection timeout
+    socketTimeoutMS: 45000,  // Socket timeout
+  });
+  
+  // Production-ready connection with retry logic and resilience
+  await connect("mongodb://localhost:27017", "your_database_name", {
+    // Connection pooling
+    maxPoolSize: 10,
+    minPoolSize: 2,
+    
+    // Automatic retry logic (enabled by default)
+    retryReads: true,        // Retry failed read operations
+    retryWrites: true,       // Retry failed write operations
+    
+    // Timeouts
+    connectTimeoutMS: 10000,  // Initial connection timeout
+    socketTimeoutMS: 45000,   // Socket operation timeout
+    serverSelectionTimeoutMS: 10000, // Server selection timeout
+    
+    // Connection resilience
+    maxIdleTimeMS: 30000,     // Close idle connections
+    heartbeatFrequencyMS: 10000, // Server health check interval
   });
   
   const UserModel = new Model("users", userSchema);
@@ -183,6 +201,25 @@ await UserModel.syncIndexes([
   { key: { email: 1 }, name: "email_idx", unique: true },
   { key: { createdAt: 1 }, name: "created_at_idx" },
 ]);
+
+// Error Handling
+import { ValidationError, ConnectionError } from "@nozzle/nozzle";
+
+try {
+  await UserModel.insertOne({ name: "", email: "invalid" });
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error("Validation failed:", error.operation);
+    // Get field-specific errors
+    const fieldErrors = error.getFieldErrors();
+    console.error("Field errors:", fieldErrors);
+    // { name: ['String must contain at least 1 character(s)'], email: ['Invalid email'] }
+  } else if (error instanceof ConnectionError) {
+    console.error("Connection failed:", error.uri);
+  } else {
+    console.error("Unexpected error:", error);
+  }
+}
 ```
 
 ---
@@ -191,8 +228,8 @@ await UserModel.syncIndexes([
 
 ### 🔴 Critical (Must Have)
 - [ ] Transactions support
-- [ ] Connection retry logic
-- [ ] Improved error handling
+- [x] Connection retry logic
+- [x] Improved error handling
 - [x] Connection health checks
 - [x] Connection pooling configuration
 

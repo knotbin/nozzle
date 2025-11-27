@@ -17,6 +17,7 @@ import type {
 } from "mongodb";
 import { ObjectId } from "mongodb";
 import { getDb } from "./client.ts";
+import { ValidationError, AsyncValidationError } from "./errors.ts";
 
 // Type alias for cleaner code - Zod schema
 type Schema = z.ZodObject;
@@ -26,8 +27,14 @@ type Input<T extends Schema> = z.input<T>;
 // Helper function to validate data using Zod
 function parse<T extends Schema>(schema: T, data: Input<T>): Infer<T> {
   const result = schema.safeParse(data);
+  
+  // Check for async validation
+  if (result instanceof Promise) {
+    throw new AsyncValidationError();
+  }
+  
   if (!result.success) {
-    throw new Error(`Validation failed: ${JSON.stringify(result.error.issues)}`);
+    throw new ValidationError(result.error.issues, "insert");
   }
   return result.data as Infer<T>;
 }
@@ -38,10 +45,31 @@ function parsePartial<T extends Schema>(
   data: Partial<z.infer<T>>,
 ): Partial<z.infer<T>> {
   const result = schema.partial().safeParse(data);
+  
+  // Check for async validation
+  if (result instanceof Promise) {
+    throw new AsyncValidationError();
+  }
+  
   if (!result.success) {
-    throw new Error(`Update validation failed: ${JSON.stringify(result.error.issues)}`);
+    throw new ValidationError(result.error.issues, "update");
   }
   return result.data as Partial<z.infer<T>>;
+}
+
+// Helper function to validate replace data using Zod
+function parseReplace<T extends Schema>(schema: T, data: Input<T>): Infer<T> {
+  const result = schema.safeParse(data);
+  
+  // Check for async validation
+  if (result instanceof Promise) {
+    throw new AsyncValidationError();
+  }
+  
+  if (!result.success) {
+    throw new ValidationError(result.error.issues, "replace");
+  }
+  return result.data as Infer<T>;
 }
 
 export class Model<T extends Schema> {
@@ -100,7 +128,7 @@ export class Model<T extends Schema> {
     query: Filter<Infer<T>>,
     data: Input<T>,
   ): Promise<UpdateResult<Infer<T>>> {
-    const validatedData = parse(this.schema, data);
+    const validatedData = parseReplace(this.schema, data);
     // Remove _id from validatedData for replaceOne (it will use the query's _id)
     const { _id, ...withoutId } = validatedData as Infer<T> & { _id?: unknown };
     return await this.collection.replaceOne(

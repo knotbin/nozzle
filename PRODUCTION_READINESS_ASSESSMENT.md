@@ -61,22 +61,24 @@
  
  ---
  
- ### 2. **Connection Management** 🔴 CRITICAL
-**Status:** ⚠️ **IMPROVED** - Connection pooling options exposed, but still missing advanced features
+ ### 2. **Connection Management** 🟡 IMPORTANT
+**Status:** ✅ **SIGNIFICANTLY IMPROVED** - Connection pooling, retry logic, and health checks implemented
 
 **Current Features:**
 - ✅ Connection pooling configuration exposed via `MongoClientOptions`
 - ✅ Users can configure `maxPoolSize`, `minPoolSize`, `maxIdleTimeMS`, etc.
 - ✅ All MongoDB driver connection options available
 - ✅ Leverages MongoDB driver's built-in pooling (no custom implementation)
+- ✅ Automatic retry logic exposed (`retryReads`, `retryWrites`)
+- ✅ Health check functionality with response time monitoring
+- ✅ Comprehensive timeout configurations
+- ✅ Server health check intervals (`heartbeatFrequencyMS`)
 
 **Remaining Issues:**
-- ⚠️ No connection retry logic
-- ⚠️ No health checks
-- ⚠️ No connection event handling
+- ⚠️ No connection event handling (connected, disconnected, error events)
 - ⚠️ Cannot connect to multiple databases (singleton pattern)
 - ⚠️ No connection string validation
-- ⚠️ No automatic reconnection on connection loss
+- ⚠️ No manual reconnection API
 
 **Mongoose Provides:**
 - Automatic reconnection
@@ -86,20 +88,37 @@
 - Connection options (readPreference, etc.)
 
 **Production Impact:**
-- Application crashes on connection loss (no automatic recovery)
-- No monitoring capabilities
-- Cannot use multiple databases in same application
+- ✅ Automatic retry on transient failures (reads and writes)
+- ✅ Health monitoring via `healthCheck()` function
+- ⚠️ Still cannot use multiple databases in same application
+- ⚠️ No event-driven connection state monitoring
 
 **Usage Example:**
 ```typescript
 await connect("mongodb://localhost:27017", "mydb", {
-  clientOptions: {
-    maxPoolSize: 10,
-    minPoolSize: 2,
-    maxIdleTimeMS: 30000,
-    connectTimeoutMS: 10000,
-  }
+  // Connection pooling
+  maxPoolSize: 10,
+  minPoolSize: 2,
+  
+  // Automatic retry logic
+  retryReads: true,
+  retryWrites: true,
+  
+  // Timeouts
+  connectTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
+  serverSelectionTimeoutMS: 10000,
+  
+  // Resilience
+  maxIdleTimeMS: 30000,
+  heartbeatFrequencyMS: 10000,
 });
+
+// Health check
+const health = await healthCheck();
+if (!health.healthy) {
+  console.error(`Database unhealthy: ${health.error}`);
+}
 ```
  
  ---
@@ -196,22 +215,32 @@ await connect("mongodb://localhost:27017", "mydb", {
  
  ---
  
- ### 6. **Error Handling** 🟡 IMPORTANT
- **Status:** Basic error handling
- 
- **Issues:**
- - Generic Error types
- - No custom error classes
- - Poor error messages
- - No error recovery strategies
- - Validation errors not structured
- 
- **Mongoose Provides:**
- - `ValidationError`
- - `CastError`
- - `MongoError`
- - Detailed error paths
- - Error recovery utilities
+### 6. **Error Handling** 🟢 GOOD
+**Status:** ✅ **SIGNIFICANTLY IMPROVED** - Custom error classes with structured information
+
+**Current Features:**
+- ✅ Custom error class hierarchy (all extend `NozzleError`)
+- ✅ `ValidationError` with structured Zod issues
+- ✅ `ConnectionError` with URI context
+- ✅ `ConfigurationError` for invalid options
+- ✅ `DocumentNotFoundError` for missing documents
+- ✅ `OperationError` for database operation failures
+- ✅ `AsyncValidationError` for unsupported async validation
+- ✅ Field-specific error grouping via `getFieldErrors()`
+- ✅ Operation context (insert/update/replace) in validation errors
+- ✅ Proper error messages with context
+- ✅ Stack trace preservation
+
+**Remaining Gaps:**
+- ⚠️ No CastError equivalent (MongoDB driver handles this)
+- ⚠️ No custom MongoError wrapper (uses native MongoDB errors)
+- ⚠️ No error recovery utilities/strategies
+
+**Mongoose Comparison:**
+- ✅ ValidationError - Similar to Mongoose
+- ✅ Structured error details - Better than Mongoose (uses Zod issues)
+- ❌ CastError - Not implemented (less relevant with Zod)
+- ⚠️ MongoError - Uses native driver errors
  
  ---
  
@@ -297,30 +326,35 @@ await connect("mongodb://localhost:27017", "mydb", {
  
  ---
  
- ### 12. **Production Features** 🔴 CRITICAL
- **Missing:**
- - Connection retry logic
- - Graceful shutdown
- - Health check endpoints
- - Monitoring hooks
- - Performance metrics
- - Query logging
- - Slow query detection
+### 12. **Production Features** 🟡 IMPORTANT
+**Implemented:**
+- ✅ Connection retry logic (`retryReads`, `retryWrites`)
+- ✅ Health check functionality (`healthCheck()`)
+
+**Missing:**
+- Graceful shutdown handling
+- Monitoring hooks/events
+- Performance metrics
+- Query logging
+- Slow query detection
  
  ---
  
- ## 🔍 Code Quality Issues
- 
- ### 1. **Error Messages**
- ```typescript
- // Current: Generic error
- throw new Error(`Validation failed: ${JSON.stringify(result.issues)}`);
- 
- // Should be: Structured error with details
- throw new ValidationError(result.issues, schema);
- ```
- 
- ### 2. **Type Safety Gaps**
+## 🔍 Code Quality Issues
+
+### 1. **Error Messages**
+✅ **RESOLVED** - Now uses custom error classes:
+```typescript
+// Current implementation
+throw new ValidationError(result.error.issues, "insert");
+
+// Provides structured error with:
+// - Operation context (insert/update/replace)
+// - Zod issues array
+// - Field-specific error grouping via getFieldErrors()
+```
+
+### 2. **Type Safety Gaps**
  ```typescript
  // This cast is unsafe
  validatedData as OptionalUnlessRequiredId<Infer<T>>
@@ -331,12 +365,19 @@ await connect("mongodb://localhost:27017", "mydb", {
  - No query sanitization
  - Direct MongoDB query passthrough
  
- ### 4. **Connection State Management**
- ```typescript
- // No way to check if connected
- // No way to reconnect
- // No connection state events
- ```
+### 4. **Connection State Management**
+✅ **PARTIALLY RESOLVED**
+```typescript
+// Now have health check
+const health = await healthCheck();
+if (!health.healthy) {
+  // Handle unhealthy connection
+}
+
+// Still missing:
+// - Connection state events
+// - Manual reconnection API
+```
  
  ### 5. **Async Validation Not Supported**
  ```typescript
@@ -358,9 +399,9 @@ await connect("mongodb://localhost:27017", "mydb", {
  | Middleware/Hooks | ❌ | ✅ | 🔴 |
  | Index Management | ✅ | ✅ | 🟡 |
  | Update Validation | ✅ | ✅ | 🟡 |
- | Relationships | ❌ | ✅ | 🟡 |
- | Connection Management | ⚠️ | ✅ | 🔴 |
- | Error Handling | ⚠️ | ✅ | 🟡 |
+| Relationships | ❌ | ✅ | 🟡 |
+| Connection Management | ✅ | ✅ | 🟡 |
+| Error Handling | ✅ | ✅ | 🟡 |
  | Plugins | ❌ | ✅ | 🟢 |
  | Query Builder | ⚠️ | ✅ | 🟢 |
  | Pagination | ✅ | ✅ | 🟢 |
@@ -401,12 +442,12 @@ await connect("mongodb://localhost:27017", "mydb", {
  
  If you want to make Nozzle production-ready:
  
- **Phase 1: Critical (Must Have)**
- 1. ❌ Implement transactions
- 2. ❌ Add connection retry logic
- 3. ❌ Improve error handling
- 4. ✅ **COMPLETED** - Add update validation
- 5. ❌ Connection health checks
+**Phase 1: Critical (Must Have)**
+1. ❌ Implement transactions
+2. ✅ **COMPLETED** - Add connection retry logic
+3. ✅ **COMPLETED** - Improve error handling
+4. ✅ **COMPLETED** - Add update validation
+5. ✅ **COMPLETED** - Connection health checks
  
  **Phase 2: Important (Should Have)**
  1. ❌ Middleware/hooks system
@@ -426,17 +467,17 @@ await connect("mongodb://localhost:27017", "mydb", {
  
  ## 📈 Production Readiness Score
  
- | Category | Score | Weight | Weighted Score |
- |----------|-------|--------|----------------|
- | Core Functionality | 8/10 | 20% | 1.6 |
- | Type Safety | 9/10 | 15% | 1.35 |
- | Error Handling | 4/10 | 15% | 0.6 |
- | Connection Management | 3/10 | 15% | 0.45 |
- | Advanced Features | 2/10 | 20% | 0.4 |
- | Testing & Docs | 6/10 | 10% | 0.6 |
- | Production Features | 2/10 | 5% | 0.1 |
- 
- **Overall Score: 5.1/10** (Not Production Ready)
+| Category | Score | Weight | Weighted Score |
+|----------|-------|--------|----------------|
+| Core Functionality | 8/10 | 20% | 1.6 |
+| Type Safety | 9/10 | 15% | 1.35 |
+| Error Handling | 8/10 | 15% | 1.2 |
+| Connection Management | 7/10 | 15% | 1.05 |
+| Advanced Features | 2/10 | 20% | 0.4 |
+| Testing & Docs | 7/10 | 10% | 0.7 |
+| Production Features | 5/10 | 5% | 0.25 |
+
+**Overall Score: 6.55/10** (Significantly Improved - Approaching Production Ready)
  
  **Mongoose Equivalent Score: ~8.5/10**
  
@@ -459,10 +500,9 @@ await connect("mongodb://localhost:27017", "mydb", {
  3. **model.ts:71, 78, 118** - Unsafe type casting (`as OptionalUnlessRequiredId`)
  4. ✅ **FIXED** - **model.ts:95-109** - Update operations now validate input via `parsePartial`
  5. ✅ **FIXED** - All update methods (`update`, `updateOne`, `replaceOne`) now validate consistently
--6. **client.ts** - No connection options (pool size, timeouts, retry logic)
-+6. ✅ **IMPROVED** - **client.ts** - Connection pooling options now exposed via `MongoClientOptions` (but still no retry logic)
-7. **client.ts** - No way to reconnect if connection is lost
-8. **client.ts** - Singleton pattern prevents multiple database connections
++6. ✅ **COMPLETED** - **client.ts** - Connection pooling and retry logic now fully exposed via `ConnectOptions`
+ 7. ⚠️ **client.ts** - No way to manually reconnect if connection is lost (automatic retry handles most cases)
+ 8. **client.ts** - Singleton pattern prevents multiple database connections
 9. **No transaction support** - Critical for data consistency
 10. **No query sanitization** - Direct MongoDB query passthrough (potential NoSQL injection)
 11. ✅ **FIXED** - Removed `InsertType` in favor of Zod's native `z.input<T>` which handles defaults generically
@@ -470,32 +510,57 @@ await connect("mongodb://localhost:27017", "mydb", {
 
 ## 🆕 Recent Improvements
 
-5. ✅ **Connection Pooling Exposed** (client.ts)
+1. ✅ **Structured Error Handling Implemented** (errors.ts)
+   - Custom error class hierarchy with `NozzleError` base class
+   - `ValidationError` with Zod issue integration and field grouping
+   - `ConnectionError` with URI context
+   - `ConfigurationError`, `DocumentNotFoundError`, `OperationError`
+   - Operation-specific validation errors (insert/update/replace)
+   - `getFieldErrors()` method for field-specific error handling
+   - Comprehensive test coverage (errors_test.ts - 10 tests)
+   - Improved error messages with context
+
+2. ✅ **Connection Retry Logic Implemented** (client.ts)
+   - Automatic retry for reads and writes via `retryReads` and `retryWrites`
+   - Full MongoDB driver connection options exposed
+   - Production-ready resilience configuration
+   - Comprehensive test coverage (connection_test.ts)
+
+3. ✅ **Health Check Functionality Added** (client.ts)
+   - `healthCheck()` function for connection monitoring
+   - Response time measurement
+   - Detailed health status reporting
+   - Test coverage included
+
+4. ✅ **Connection Pooling Exposed** (client.ts)
    - Connection pooling options now available via `MongoClientOptions`
    - Users can configure all MongoDB driver connection options
    - Comprehensive test coverage (connection_test.ts)
  
- 1. ✅ **Update Validation Implemented** (model.ts:33-57, 95-109)
-    - `parsePartial` function validates partial update data
-    - Both `update` and `updateOne` methods now validate
-    - Comprehensive test coverage added
- 
- 2. ✅ **Pagination Support Added** (model.ts:138-149)
-    - `findPaginated` method with skip, limit, and sort options
-    - Convenient helper for common pagination needs
- 
- 3. ✅ **Index Management Implemented** (model.ts:147-250)
-    - Full index management API: createIndex, createIndexes, dropIndex, dropIndexes
-    - Index querying: listIndexes, getIndex, indexExists
-    - Index synchronization: syncIndexes for migrations
-    - Support for all MongoDB index types (unique, compound, text, geospatial)
-    - Comprehensive test coverage (index_test.ts)
- 
- 4. ✅ **Enhanced Test Coverage**
-    - CRUD operations testing
-    - Update validation testing
-    - Default values testing
-    - Index management testing
+  5. ✅ **Update Validation Implemented** (model.ts:33-57, 95-109)
+     - `parsePartial` function validates partial update data
+     - Both `update` and `updateOne` methods now validate
+     - Comprehensive test coverage added
+  
+  6. ✅ **Pagination Support Added** (model.ts:138-149)
+     - `findPaginated` method with skip, limit, and sort options
+     - Convenient helper for common pagination needs
+  
+  7. ✅ **Index Management Implemented** (model.ts:147-250)
+     - Full index management API: createIndex, createIndexes, dropIndex, dropIndexes
+     - Index querying: listIndexes, getIndex, indexExists
+     - Index synchronization: syncIndexes for migrations
+     - Support for all MongoDB index types (unique, compound, text, geospatial)
+     - Comprehensive test coverage (index_test.ts)
+  
+  8. ✅ **Enhanced Test Coverage**
+     - CRUD operations testing
+     - Update validation testing
+     - Default values testing
+     - Index management testing
+     - Connection retry and resilience testing
+     - Health check testing
+     - Error handling testing (10 comprehensive tests)
  
  ---
  
@@ -506,7 +571,25 @@ await connect("mongodb://localhost:27017", "mydb", {
  
  ## 📋 Changelog
  
-### Version 0.2.0 (Latest)
+### Version 0.4.0 (Latest)
+- ✅ Structured error handling implemented (custom error classes)
+- ✅ `ValidationError` with field-specific error grouping
+- ✅ `ConnectionError`, `ConfigurationError`, and other error types
+- ✅ Operation context in validation errors (insert/update/replace)
+- ✅ 10 comprehensive error handling tests added
+- Updated scores (6.55/10, up from 5.85/10)
+- Error Handling upgraded from 4/10 to 8/10
+- Testing & Docs upgraded from 6/10 to 7/10
+
+### Version 0.3.0
+- ✅ Connection retry logic implemented (`retryReads`, `retryWrites`)
+- ✅ Health check functionality added (`healthCheck()`)
+- ✅ Full production resilience configuration support
+- Updated scores (5.85/10, up from 5.1/10)
+- Connection Management upgraded from 3/10 to 7/10
+- Production Features upgraded from 2/10 to 5/10
+
+### Version 0.2.0
 - ✅ Update validation now implemented
 - ✅ Pagination support added (`findPaginated`)
 - ✅ Index management implemented

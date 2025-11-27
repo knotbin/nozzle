@@ -237,3 +237,64 @@ Deno.test({
   sanitizeOps: false,
 });
 
+Deno.test({
+  name: "Connection: Retry Options - should accept retry configuration",
+  async fn() {
+    const uri = await setupTestServer();
+    const options: ConnectOptions = {
+      retryReads: true,
+      retryWrites: true,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
+    };
+    
+    const connection = await connect(uri, "test_db", options);
+    
+    assert(connection);
+    assert(connection.client);
+    assert(connection.db);
+    
+    // Verify connection works with retry options
+    const collections = await connection.db.listCollections().toArray();
+    assert(Array.isArray(collections));
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
+Deno.test({
+  name: "Connection: Resilience Options - should accept full production config",
+  async fn() {
+    const uri = await setupTestServer();
+    const options: ConnectOptions = {
+      // Pooling
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      
+      // Retry logic
+      retryReads: true,
+      retryWrites: true,
+      
+      // Timeouts
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 10000,
+      
+      // Resilience
+      maxIdleTimeMS: 30000,
+      heartbeatFrequencyMS: 10000,
+    };
+    
+    const connection = await connect(uri, "test_db", options);
+    
+    assert(connection);
+    
+    // Verify connection is working
+    const adminDb = connection.db.admin();
+    const serverStatus = await adminDb.serverStatus();
+    assert(serverStatus);
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
