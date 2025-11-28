@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { z } from "@zod/zod";
-import { connect, disconnect, Model, type Input } from "../mod.ts";
+import { connect, disconnect, Model } from "../mod.ts";
 import { applyDefaultsForUpsert } from "../model/validation.ts";
 import { MongoMemoryServer } from "mongodb-memory-server-core";
 
@@ -24,9 +24,6 @@ const productSchema = z.object({
   createdAt: z.date().default(() => new Date("2024-01-01T00:00:00Z")),
   tags: z.array(z.string()).default([]),
 });
-
-type Product = z.infer<typeof productSchema>;
-type ProductInsert = Input<typeof productSchema>;
 
 let ProductModel: Model<typeof productSchema>;
 let mongoServer: MongoMemoryServer;
@@ -346,6 +343,56 @@ Deno.test({
 
     assertEquals(result.$setOnInsert?.status, undefined);
     assertEquals(result.$setOnInsert?.flag, true);
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
+Deno.test({
+  name: "Defaults: findOneAndUpdate with upsert preserves query equality fields",
+  async fn() {
+    await ProductModel.findOneAndUpdate(
+      { name: "FindOneUpsert", category: "special" },
+      { price: 12.5 },
+      { upsert: true }
+    );
+
+    const product = await ProductModel.findOne({ name: "FindOneUpsert" });
+    assertExists(product);
+
+    assertEquals(product.category, "special"); // from query, not default
+    assertEquals(product.price, 12.5); // from update
+    assertEquals(product.inStock, true); // default applied
+    assertExists(product.createdAt); // default applied
+    assertEquals(product.tags, []); // default applied
+  },
+  sanitizeResources: false,
+  sanitizeOps: false,
+});
+
+Deno.test({
+  name: "Defaults: findOneAndReplace with upsert applies defaults on creation",
+  async fn() {
+    const result = await ProductModel.findOneAndReplace(
+      { name: "FindOneReplaceUpsert" },
+      {
+        name: "FindOneReplaceUpsert",
+        price: 77.0,
+      },
+      { upsert: true }
+    );
+
+    assertExists(result.lastErrorObject?.upserted);
+
+    const product = await ProductModel.findOne({ name: "FindOneReplaceUpsert" });
+    assertExists(product);
+
+    assertEquals(product.name, "FindOneReplaceUpsert");
+    assertEquals(product.price, 77.0);
+    assertEquals(product.category, "general"); // default applied
+    assertEquals(product.inStock, true); // default applied
+    assertExists(product.createdAt); // default applied
+    assertEquals(product.tags, []); // default applied
   },
   sanitizeResources: false,
   sanitizeOps: false,

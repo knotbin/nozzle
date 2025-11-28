@@ -10,6 +10,8 @@ import type {
   FindOptions,
   UpdateOptions,
   ReplaceOptions,
+  FindOneAndUpdateOptions,
+  FindOneAndReplaceOptions,
   DeleteOptions,
   CountDocumentsOptions,
   AggregateOptions,
@@ -18,6 +20,7 @@ import type {
   WithId,
   BulkWriteOptions,
   UpdateFilter,
+  ModifyResult,
 } from "mongodb";
 import { ObjectId } from "mongodb";
 import type { Schema, Infer, Input } from "../types.ts";
@@ -222,6 +225,63 @@ export async function replaceOne<T extends Schema>(
     query,
     withoutId as Infer<T>,
     options
+  );
+}
+
+/**
+ * Find a single document and update it
+ * 
+ * Case handling:
+ * - If upsert: false (or undefined) → Normal update
+ * - If upsert: true → Defaults added to $setOnInsert for new document creation
+ */
+export async function findOneAndUpdate<T extends Schema>(
+  collection: Collection<Infer<T>>,
+  schema: T,
+  query: Filter<Infer<T>>,
+  data: Partial<z.infer<T>>,
+  options?: FindOneAndUpdateOptions
+): Promise<ModifyResult<Infer<T>>> {
+  const validatedData = parsePartial(schema, data);
+  let updateDoc: UpdateFilter<Infer<T>> = { $set: validatedData as Partial<Infer<T>> };
+
+  if (options?.upsert) {
+    updateDoc = applyDefaultsForUpsert(schema, query, updateDoc);
+  }
+
+  const resolvedOptions: FindOneAndUpdateOptions & { includeResultMetadata: true } = {
+    ...(options ?? {}),
+    includeResultMetadata: true as const,
+  };
+
+  return await collection.findOneAndUpdate(query, updateDoc, resolvedOptions);
+}
+
+/**
+ * Find a single document and replace it
+ * 
+ * Defaults are applied via parseReplace(), which fills in missing fields
+ * for both normal replacements and upsert-created documents.
+ */
+export async function findOneAndReplace<T extends Schema>(
+  collection: Collection<Infer<T>>,
+  schema: T,
+  query: Filter<Infer<T>>,
+  data: Input<T>,
+  options?: FindOneAndReplaceOptions
+): Promise<ModifyResult<Infer<T>>> {
+  const validatedData = parseReplace(schema, data);
+  const { _id, ...withoutId } = validatedData as Infer<T> & { _id?: unknown };
+
+  const resolvedOptions: FindOneAndReplaceOptions & { includeResultMetadata: true } = {
+    ...(options ?? {}),
+    includeResultMetadata: true as const,
+  };
+
+  return await collection.findOneAndReplace(
+    query,
+    withoutId as Infer<T>,
+    resolvedOptions
   );
 }
 

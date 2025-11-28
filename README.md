@@ -271,7 +271,7 @@ try {
 - [x] Index management
 - [ ] Middleware/hooks system
 - [ ] Relationship/population support
-- [ ] Better default value handling
+- [x] Better default value handling
 - [ ] Comprehensive edge case testing
 
 ### 🟢 Nice to Have

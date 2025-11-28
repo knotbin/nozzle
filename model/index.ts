@@ -14,6 +14,8 @@ import type {
   FindOptions,
   UpdateOptions,
   ReplaceOptions,
+  FindOneAndUpdateOptions,
+  FindOneAndReplaceOptions,
   DeleteOptions,
   CountDocumentsOptions,
   AggregateOptions,
@@ -21,6 +23,7 @@ import type {
   UpdateResult,
   WithId,
   BulkWriteOptions,
+  ModifyResult,
 } from "mongodb";
 import type { ObjectId } from "mongodb";
 import { getDb } from "../client/connection.ts";
@@ -174,6 +177,22 @@ export class Model<T extends Schema> {
   }
 
   /**
+   * Find a single document and update it
+   * 
+   * @param query - MongoDB query filter
+   * @param data - Partial data to update
+   * @param options - FindOneAndUpdate options (including upsert and returnDocument)
+   * @returns Modify result containing the matched document
+   */
+  async findOneAndUpdate(
+    query: Filter<Infer<T>>,
+    data: Partial<z.infer<T>>,
+    options?: FindOneAndUpdateOptions
+  ): Promise<ModifyResult<Infer<T>>> {
+    return await core.findOneAndUpdate(this.collection, this.schema, query, data, options);
+  }
+
+  /**
    * Replace a single document matching the query
    * 
    * @param query - MongoDB query filter
@@ -187,6 +206,22 @@ export class Model<T extends Schema> {
     options?: ReplaceOptions
   ): Promise<UpdateResult<Infer<T>>> {
     return await core.replaceOne(this.collection, this.schema, query, data, options);
+  }
+
+  /**
+   * Find a single document and replace it
+   * 
+   * @param query - MongoDB query filter
+   * @param data - Complete document data for replacement
+   * @param options - FindOneAndReplace options (including upsert and returnDocument)
+   * @returns Modify result containing the matched document
+   */
+  async findOneAndReplace(
+    query: Filter<Infer<T>>,
+    data: Input<T>,
+    options?: FindOneAndReplaceOptions
+  ): Promise<ModifyResult<Infer<T>>> {
+    return await core.findOneAndReplace(this.collection, this.schema, query, data, options);
   }
 
   /**
