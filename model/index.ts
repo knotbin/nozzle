@@ -24,7 +24,7 @@ import type {
 } from "mongodb";
 import type { ObjectId } from "mongodb";
 import { getDb } from "../client/connection.ts";
-import type { Schema, Infer, Input } from "../types.ts";
+import type { Schema, Infer, Input, Indexes, ModelDef } from "../types.ts";
 import * as core from "./core.ts";
 import * as indexes from "./indexes.ts";
 import * as pagination from "./pagination.ts";
@@ -49,10 +49,22 @@ import * as pagination from "./pagination.ts";
 export class Model<T extends Schema> {
   private collection: Collection<Infer<T>>;
   private schema: T;
+  private indexes?: Indexes;
 
-  constructor(collectionName: string, schema: T) {
+  constructor(collectionName: string, definition: ModelDef<T> | T) {
+    if ("schema" in definition) {
+      this.schema = definition.schema;
+      this.indexes = definition.indexes;
+    } else {
+      this.schema = definition as T;
+    }
     this.collection = getDb().collection<Infer<T>>(collectionName);
-    this.schema = schema;
+    
+    // Automatically create indexes if they were provided
+    if (this.indexes && this.indexes.length > 0) {
+      // Fire and forget - indexes will be created asynchronously
+      indexes.syncIndexes(this.collection, this.indexes)
+    }
   }
 
   // ============================================================================
