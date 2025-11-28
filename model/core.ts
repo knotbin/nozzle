@@ -17,10 +17,11 @@ import type {
   UpdateResult,
   WithId,
   BulkWriteOptions,
+  UpdateFilter,
 } from "mongodb";
 import { ObjectId } from "mongodb";
 import type { Schema, Infer, Input } from "../types.ts";
-import { parse, parsePartial, parseReplace } from "./validation.ts";
+import { parse, parsePartial, parseReplace, applyDefaultsForUpsert } from "./validation.ts";
 
 /**
  * Core CRUD operations for the Model class
@@ -125,11 +126,15 @@ export async function findById<T extends Schema>(
 /**
  * Update multiple documents matching the query
  * 
+ * Case handling:
+ * - If upsert: false (or undefined) → Normal update, no defaults applied
+ * - If upsert: true → Defaults added to $setOnInsert for new document creation
+ * 
  * @param collection - MongoDB collection
  * @param schema - Zod schema for validation
  * @param query - MongoDB query filter
  * @param data - Partial data to update
- * @param options - Update options (including session for transactions)
+ * @param options - Update options (including session for transactions and upsert flag)
  * @returns Update result
  */
 export async function update<T extends Schema>(
@@ -140,21 +145,28 @@ export async function update<T extends Schema>(
   options?: UpdateOptions
 ): Promise<UpdateResult<Infer<T>>> {
   const validatedData = parsePartial(schema, data);
-  return await collection.updateMany(
-    query, 
-    { $set: validatedData as Partial<Infer<T>> },
-    options
-  );
+  let updateDoc: UpdateFilter<Infer<T>> = { $set: validatedData as Partial<Infer<T>> };
+  
+  // If this is an upsert, apply defaults using $setOnInsert
+  if (options?.upsert) {
+    updateDoc = applyDefaultsForUpsert(schema, query, updateDoc);
+  }
+  
+  return await collection.updateMany(query, updateDoc, options);
 }
 
 /**
  * Update a single document matching the query
  * 
+ * Case handling:
+ * - If upsert: false (or undefined) → Normal update, no defaults applied
+ * - If upsert: true → Defaults added to $setOnInsert for new document creation
+ * 
  * @param collection - MongoDB collection
  * @param schema - Zod schema for validation
  * @param query - MongoDB query filter
  * @param data - Partial data to update
- * @param options - Update options (including session for transactions)
+ * @param options - Update options (including session for transactions and upsert flag)
  * @returns Update result
  */
 export async function updateOne<T extends Schema>(
@@ -165,21 +177,32 @@ export async function updateOne<T extends Schema>(
   options?: UpdateOptions
 ): Promise<UpdateResult<Infer<T>>> {
   const validatedData = parsePartial(schema, data);
-  return await collection.updateOne(
-    query, 
-    { $set: validatedData as Partial<Infer<T>> },
-    options
-  );
+  let updateDoc: UpdateFilter<Infer<T>> = { $set: validatedData as Partial<Infer<T>> };
+  
+  // If this is an upsert, apply defaults using $setOnInsert
+  if (options?.upsert) {
+    updateDoc = applyDefaultsForUpsert(schema, query, updateDoc);
+  }
+  
+  return await collection.updateOne(query, updateDoc, options);
 }
 
 /**
  * Replace a single document matching the query
  * 
+ * Case handling:
+ * - If upsert: false (or undefined) → Normal replace on existing doc, no additional defaults
+ * - If upsert: true → Defaults applied via parse() since we're passing a full document
+ * 
+ * Note: For replace operations, defaults are automatically applied by the schema's
+ * parse() function which treats missing fields as candidates for defaults. This works
+ * for both regular replaces and upsert-creates since we're providing a full document.
+ * 
  * @param collection - MongoDB collection
  * @param schema - Zod schema for validation
  * @param query - MongoDB query filter
  * @param data - Complete document data for replacement
- * @param options - Replace options (including session for transactions)
+ * @param options - Replace options (including session for transactions and upsert flag)
  * @returns Update result
  */
 export async function replaceOne<T extends Schema>(
@@ -189,7 +212,10 @@ export async function replaceOne<T extends Schema>(
   data: Input<T>,
   options?: ReplaceOptions
 ): Promise<UpdateResult<Infer<T>>> {
+  // parseReplace will apply all schema defaults to missing fields
+  // This works correctly for both regular replaces and upsert-created documents
   const validatedData = parseReplace(schema, data);
+  
   // Remove _id from validatedData for replaceOne (it will use the query's _id)
   const { _id, ...withoutId } = validatedData as Infer<T> & { _id?: unknown };
   return await collection.replaceOne(
