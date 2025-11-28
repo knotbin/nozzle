@@ -1,41 +1,46 @@
 import type { z } from "@zod/zod";
 import type {
+  AggregateOptions,
+  BulkWriteOptions,
   Collection,
+  CountDocumentsOptions,
+  DeleteOptions,
   DeleteResult,
   Document,
   Filter,
-  InsertManyResult,
-  InsertOneResult,
-  InsertOneOptions,
-  FindOptions,
-  UpdateOptions,
-  ReplaceOptions,
-  FindOneAndUpdateOptions,
   FindOneAndReplaceOptions,
-  DeleteOptions,
-  CountDocumentsOptions,
-  AggregateOptions,
+  FindOneAndUpdateOptions,
+  FindOptions,
+  InsertManyResult,
+  InsertOneOptions,
+  InsertOneResult,
+  ModifyResult,
   OptionalUnlessRequiredId,
+  ReplaceOptions,
+  UpdateFilter,
+  UpdateOptions,
   UpdateResult,
   WithId,
-  BulkWriteOptions,
-  UpdateFilter,
-  ModifyResult,
 } from "mongodb";
 import { ObjectId } from "mongodb";
-import type { Schema, Infer, Input } from "../types.ts";
-import { parse, parsePartial, parseReplace, applyDefaultsForUpsert } from "./validation.ts";
+import type { Infer, Input, Schema } from "../types.ts";
+import {
+  applyDefaultsForUpsert,
+  parse,
+  parsePartial,
+  parseReplace,
+} from "./validation.ts";
 
 /**
  * Core CRUD operations for the Model class
- * 
+ *
  * This module contains all basic create, read, update, and delete operations
  * with automatic Zod validation and transaction support.
  */
 
 /**
  * Insert a single document into the collection
- * 
+ *
  * @param collection - MongoDB collection
  * @param schema - Zod schema for validation
  * @param data - Document data to insert
@@ -46,18 +51,18 @@ export async function insertOne<T extends Schema>(
   collection: Collection<Infer<T>>,
   schema: T,
   data: Input<T>,
-  options?: InsertOneOptions
+  options?: InsertOneOptions,
 ): Promise<InsertOneResult<Infer<T>>> {
   const validatedData = parse(schema, data);
   return await collection.insertOne(
     validatedData as OptionalUnlessRequiredId<Infer<T>>,
-    options
+    options,
   );
 }
 
 /**
  * Insert multiple documents into the collection
- * 
+ *
  * @param collection - MongoDB collection
  * @param schema - Zod schema for validation
  * @param data - Array of document data to insert
@@ -68,18 +73,18 @@ export async function insertMany<T extends Schema>(
   collection: Collection<Infer<T>>,
   schema: T,
   data: Input<T>[],
-  options?: BulkWriteOptions
+  options?: BulkWriteOptions,
 ): Promise<InsertManyResult<Infer<T>>> {
   const validatedData = data.map((item) => parse(schema, item));
   return await collection.insertMany(
     validatedData as OptionalUnlessRequiredId<Infer<T>>[],
-    options
+    options,
   );
 }
 
 /**
  * Find multiple documents matching the query
- * 
+ *
  * @param collection - MongoDB collection
  * @param query - MongoDB query filter
  * @param options - Find options (including session for transactions)
@@ -88,14 +93,14 @@ export async function insertMany<T extends Schema>(
 export async function find<T extends Schema>(
   collection: Collection<Infer<T>>,
   query: Filter<Infer<T>>,
-  options?: FindOptions
+  options?: FindOptions,
 ): Promise<(WithId<Infer<T>>)[]> {
   return await collection.find(query, options).toArray();
 }
 
 /**
  * Find a single document matching the query
- * 
+ *
  * @param collection - MongoDB collection
  * @param query - MongoDB query filter
  * @param options - Find options (including session for transactions)
@@ -104,14 +109,14 @@ export async function find<T extends Schema>(
 export async function findOne<T extends Schema>(
   collection: Collection<Infer<T>>,
   query: Filter<Infer<T>>,
-  options?: FindOptions
+  options?: FindOptions,
 ): Promise<WithId<Infer<T>> | null> {
   return await collection.findOne(query, options);
 }
 
 /**
  * Find a document by its MongoDB ObjectId
- * 
+ *
  * @param collection - MongoDB collection
  * @param id - Document ID (string or ObjectId)
  * @param options - Find options (including session for transactions)
@@ -120,19 +125,23 @@ export async function findOne<T extends Schema>(
 export async function findById<T extends Schema>(
   collection: Collection<Infer<T>>,
   id: string | ObjectId,
-  options?: FindOptions
+  options?: FindOptions,
 ): Promise<WithId<Infer<T>> | null> {
   const objectId = typeof id === "string" ? new ObjectId(id) : id;
-  return await findOne(collection, { _id: objectId } as Filter<Infer<T>>, options);
+  return await findOne(
+    collection,
+    { _id: objectId } as Filter<Infer<T>>,
+    options,
+  );
 }
 
 /**
  * Update multiple documents matching the query
- * 
+ *
  * Case handling:
  * - If upsert: false (or undefined) → Normal update, no defaults applied
  * - If upsert: true → Defaults added to $setOnInsert for new document creation
- * 
+ *
  * @param collection - MongoDB collection
  * @param schema - Zod schema for validation
  * @param query - MongoDB query filter
@@ -145,26 +154,28 @@ export async function update<T extends Schema>(
   schema: T,
   query: Filter<Infer<T>>,
   data: Partial<z.infer<T>>,
-  options?: UpdateOptions
+  options?: UpdateOptions,
 ): Promise<UpdateResult<Infer<T>>> {
   const validatedData = parsePartial(schema, data);
-  let updateDoc: UpdateFilter<Infer<T>> = { $set: validatedData as Partial<Infer<T>> };
-  
+  let updateDoc: UpdateFilter<Infer<T>> = {
+    $set: validatedData as Partial<Infer<T>>,
+  };
+
   // If this is an upsert, apply defaults using $setOnInsert
   if (options?.upsert) {
     updateDoc = applyDefaultsForUpsert(schema, query, updateDoc);
   }
-  
+
   return await collection.updateMany(query, updateDoc, options);
 }
 
 /**
  * Update a single document matching the query
- * 
+ *
  * Case handling:
  * - If upsert: false (or undefined) → Normal update, no defaults applied
  * - If upsert: true → Defaults added to $setOnInsert for new document creation
- * 
+ *
  * @param collection - MongoDB collection
  * @param schema - Zod schema for validation
  * @param query - MongoDB query filter
@@ -177,30 +188,32 @@ export async function updateOne<T extends Schema>(
   schema: T,
   query: Filter<Infer<T>>,
   data: Partial<z.infer<T>>,
-  options?: UpdateOptions
+  options?: UpdateOptions,
 ): Promise<UpdateResult<Infer<T>>> {
   const validatedData = parsePartial(schema, data);
-  let updateDoc: UpdateFilter<Infer<T>> = { $set: validatedData as Partial<Infer<T>> };
-  
+  let updateDoc: UpdateFilter<Infer<T>> = {
+    $set: validatedData as Partial<Infer<T>>,
+  };
+
   // If this is an upsert, apply defaults using $setOnInsert
   if (options?.upsert) {
     updateDoc = applyDefaultsForUpsert(schema, query, updateDoc);
   }
-  
+
   return await collection.updateOne(query, updateDoc, options);
 }
 
 /**
  * Replace a single document matching the query
- * 
+ *
  * Case handling:
  * - If upsert: false (or undefined) → Normal replace on existing doc, no additional defaults
  * - If upsert: true → Defaults applied via parse() since we're passing a full document
- * 
+ *
  * Note: For replace operations, defaults are automatically applied by the schema's
  * parse() function which treats missing fields as candidates for defaults. This works
  * for both regular replaces and upsert-creates since we're providing a full document.
- * 
+ *
  * @param collection - MongoDB collection
  * @param schema - Zod schema for validation
  * @param query - MongoDB query filter
@@ -213,24 +226,24 @@ export async function replaceOne<T extends Schema>(
   schema: T,
   query: Filter<Infer<T>>,
   data: Input<T>,
-  options?: ReplaceOptions
+  options?: ReplaceOptions,
 ): Promise<UpdateResult<Infer<T>>> {
   // parseReplace will apply all schema defaults to missing fields
   // This works correctly for both regular replaces and upsert-created documents
   const validatedData = parseReplace(schema, data);
-  
+
   // Remove _id from validatedData for replaceOne (it will use the query's _id)
   const { _id, ...withoutId } = validatedData as Infer<T> & { _id?: unknown };
   return await collection.replaceOne(
     query,
     withoutId as Infer<T>,
-    options
+    options,
   );
 }
 
 /**
  * Find a single document and update it
- * 
+ *
  * Case handling:
  * - If upsert: false (or undefined) → Normal update
  * - If upsert: true → Defaults added to $setOnInsert for new document creation
@@ -240,16 +253,20 @@ export async function findOneAndUpdate<T extends Schema>(
   schema: T,
   query: Filter<Infer<T>>,
   data: Partial<z.infer<T>>,
-  options?: FindOneAndUpdateOptions
+  options?: FindOneAndUpdateOptions,
 ): Promise<ModifyResult<Infer<T>>> {
   const validatedData = parsePartial(schema, data);
-  let updateDoc: UpdateFilter<Infer<T>> = { $set: validatedData as Partial<Infer<T>> };
+  let updateDoc: UpdateFilter<Infer<T>> = {
+    $set: validatedData as Partial<Infer<T>>,
+  };
 
   if (options?.upsert) {
     updateDoc = applyDefaultsForUpsert(schema, query, updateDoc);
   }
 
-  const resolvedOptions: FindOneAndUpdateOptions & { includeResultMetadata: true } = {
+  const resolvedOptions: FindOneAndUpdateOptions & {
+    includeResultMetadata: true;
+  } = {
     ...(options ?? {}),
     includeResultMetadata: true as const,
   };
@@ -259,7 +276,7 @@ export async function findOneAndUpdate<T extends Schema>(
 
 /**
  * Find a single document and replace it
- * 
+ *
  * Defaults are applied via parseReplace(), which fills in missing fields
  * for both normal replacements and upsert-created documents.
  */
@@ -268,12 +285,14 @@ export async function findOneAndReplace<T extends Schema>(
   schema: T,
   query: Filter<Infer<T>>,
   data: Input<T>,
-  options?: FindOneAndReplaceOptions
+  options?: FindOneAndReplaceOptions,
 ): Promise<ModifyResult<Infer<T>>> {
   const validatedData = parseReplace(schema, data);
   const { _id, ...withoutId } = validatedData as Infer<T> & { _id?: unknown };
 
-  const resolvedOptions: FindOneAndReplaceOptions & { includeResultMetadata: true } = {
+  const resolvedOptions: FindOneAndReplaceOptions & {
+    includeResultMetadata: true;
+  } = {
     ...(options ?? {}),
     includeResultMetadata: true as const,
   };
@@ -281,13 +300,13 @@ export async function findOneAndReplace<T extends Schema>(
   return await collection.findOneAndReplace(
     query,
     withoutId as Infer<T>,
-    resolvedOptions
+    resolvedOptions,
   );
 }
 
 /**
  * Delete multiple documents matching the query
- * 
+ *
  * @param collection - MongoDB collection
  * @param query - MongoDB query filter
  * @param options - Delete options (including session for transactions)
@@ -296,14 +315,14 @@ export async function findOneAndReplace<T extends Schema>(
 export async function deleteMany<T extends Schema>(
   collection: Collection<Infer<T>>,
   query: Filter<Infer<T>>,
-  options?: DeleteOptions
+  options?: DeleteOptions,
 ): Promise<DeleteResult> {
   return await collection.deleteMany(query, options);
 }
 
 /**
  * Delete a single document matching the query
- * 
+ *
  * @param collection - MongoDB collection
  * @param query - MongoDB query filter
  * @param options - Delete options (including session for transactions)
@@ -312,14 +331,14 @@ export async function deleteMany<T extends Schema>(
 export async function deleteOne<T extends Schema>(
   collection: Collection<Infer<T>>,
   query: Filter<Infer<T>>,
-  options?: DeleteOptions
+  options?: DeleteOptions,
 ): Promise<DeleteResult> {
   return await collection.deleteOne(query, options);
 }
 
 /**
  * Count documents matching the query
- * 
+ *
  * @param collection - MongoDB collection
  * @param query - MongoDB query filter
  * @param options - Count options (including session for transactions)
@@ -328,14 +347,14 @@ export async function deleteOne<T extends Schema>(
 export async function count<T extends Schema>(
   collection: Collection<Infer<T>>,
   query: Filter<Infer<T>>,
-  options?: CountDocumentsOptions
+  options?: CountDocumentsOptions,
 ): Promise<number> {
   return await collection.countDocuments(query, options);
 }
 
 /**
  * Execute an aggregation pipeline
- * 
+ *
  * @param collection - MongoDB collection
  * @param pipeline - MongoDB aggregation pipeline
  * @param options - Aggregate options (including session for transactions)
@@ -344,7 +363,7 @@ export async function count<T extends Schema>(
 export async function aggregate<T extends Schema>(
   collection: Collection<Infer<T>>,
   pipeline: Document[],
-  options?: AggregateOptions
+  options?: AggregateOptions,
 ): Promise<Document[]> {
   return await collection.aggregate(pipeline, options).toArray();
 }

@@ -1,29 +1,24 @@
-import type {
-  Collection,
-  Document,
-  Filter,
-  WithId,
-} from "mongodb";
-import type { Schema, Infer } from "../types.ts";
+import type { Collection, Document, Filter, WithId } from "mongodb";
+import type { Infer, Schema } from "../types.ts";
 
 /**
  * Pagination operations for the Model class
- * 
+ *
  * This module contains pagination-related functionality for finding documents
  * with skip, limit, and sort options.
  */
 
 /**
  * Find documents with pagination support
- * 
+ *
  * @param collection - MongoDB collection
  * @param query - MongoDB query filter
  * @param options - Pagination options (skip, limit, sort)
  * @returns Array of matching documents
- * 
+ *
  * @example
  * ```ts
- * const users = await findPaginated(collection, 
+ * const users = await findPaginated(collection,
  *   { age: { $gte: 18 } },
  *   { skip: 0, limit: 10, sort: { createdAt: -1 } }
  * );

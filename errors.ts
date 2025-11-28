@@ -24,8 +24,11 @@ export class NozzleError extends Error {
 export class ValidationError extends NozzleError {
   public readonly issues: ValidationIssue[];
   public readonly operation: "insert" | "update" | "replace";
-  
-  constructor(issues: ValidationIssue[], operation: "insert" | "update" | "replace") {
+
+  constructor(
+    issues: ValidationIssue[],
+    operation: "insert" | "update" | "replace",
+  ) {
     const message = ValidationError.formatIssues(issues);
     super(`Validation failed on ${operation}: ${message}`);
     this.issues = issues;
@@ -33,10 +36,10 @@ export class ValidationError extends NozzleError {
   }
 
   private static formatIssues(issues: ValidationIssue[]): string {
-    return issues.map(issue => {
-      const path = issue.path.join('.');
-      return `${path || 'root'}: ${issue.message}`;
-    }).join('; ');
+    return issues.map((issue) => {
+      const path = issue.path.join(".");
+      return `${path || "root"}: ${issue.message}`;
+    }).join("; ");
   }
 
   /**
@@ -45,7 +48,7 @@ export class ValidationError extends NozzleError {
   public getFieldErrors(): Record<string, string[]> {
     const fieldErrors: Record<string, string[]> = {};
     for (const issue of this.issues) {
-      const field = issue.path.join('.') || 'root';
+      const field = issue.path.join(".") || "root";
       if (!fieldErrors[field]) {
         fieldErrors[field] = [];
       }
@@ -61,7 +64,7 @@ export class ValidationError extends NozzleError {
  */
 export class ConnectionError extends NozzleError {
   public readonly uri?: string;
-  
+
   constructor(message: string, uri?: string) {
     super(message);
     this.uri = uri;
@@ -74,7 +77,7 @@ export class ConnectionError extends NozzleError {
  */
 export class ConfigurationError extends NozzleError {
   public readonly option?: string;
-  
+
   constructor(message: string, option?: string) {
     super(message);
     this.option = option;
@@ -88,7 +91,7 @@ export class ConfigurationError extends NozzleError {
 export class DocumentNotFoundError extends NozzleError {
   public readonly query: unknown;
   public readonly collection: string;
-  
+
   constructor(collection: string, query: unknown) {
     super(`Document not found in collection '${collection}'`);
     this.collection = collection;
@@ -104,8 +107,13 @@ export class OperationError extends NozzleError {
   public readonly operation: string;
   public readonly collection?: string;
   public override readonly cause?: Error;
-  
-  constructor(operation: string, message: string, collection?: string, cause?: Error) {
+
+  constructor(
+    operation: string,
+    message: string,
+    collection?: string,
+    cause?: Error,
+  ) {
     super(`${operation} operation failed: ${message}`);
     this.operation = operation;
     this.collection = collection;
@@ -121,7 +129,7 @@ export class AsyncValidationError extends NozzleError {
   constructor() {
     super(
       "Async validation is not currently supported. " +
-      "Please use synchronous validation schemas."
+        "Please use synchronous validation schemas.",
     );
   }
 }

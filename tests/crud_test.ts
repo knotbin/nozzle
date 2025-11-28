@@ -14,7 +14,7 @@ let UserModel: Model<typeof userSchema>;
 
 Deno.test.beforeAll(async () => {
   await setupTestDb();
-  UserModel = createUserModel();
+  UserModel = createUserModel("users_crud");
 });
 
 Deno.test.beforeEach(async () => {
@@ -28,7 +28,6 @@ Deno.test.afterAll(async () => {
 Deno.test({
   name: "CRUD: Insert - should insert a new user successfully",
   async fn() {
-
     const newUser: UserInsert = {
       name: "Test User",
       email: "test@example.com",
@@ -47,7 +46,6 @@ Deno.test({
 Deno.test({
   name: "CRUD: Find - should find the inserted user",
   async fn() {
-
     // First insert a user for this test
     const newUser: UserInsert = {
       name: "Find Test User",
@@ -73,7 +71,6 @@ Deno.test({
 Deno.test({
   name: "CRUD: Update - should update user data",
   async fn() {
-
     // Insert a user for this test
     const newUser: UserInsert = {
       name: "Update Test User",
@@ -106,7 +103,6 @@ Deno.test({
 Deno.test({
   name: "CRUD: Delete - should delete user successfully",
   async fn() {
-
     // Insert a user for this test
     const newUser: UserInsert = {
       name: "Delete Test User",
@@ -137,7 +133,6 @@ Deno.test({
 Deno.test({
   name: "CRUD: Find Multiple - should find multiple users",
   async fn() {
-
     // Insert multiple users
     const users: UserInsert[] = [
       { name: "User 1", email: "user1@example.com", age: 20 },
@@ -157,5 +152,3 @@ Deno.test({
   sanitizeResources: false,
   sanitizeOps: false,
 });
-
-

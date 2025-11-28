@@ -14,7 +14,7 @@ let UserModel: Model<typeof userSchema>;
 
 Deno.test.beforeAll(async () => {
   await setupTestDb();
-  UserModel = createUserModel();
+  UserModel = createUserModel("users_validation");
 });
 
 Deno.test.beforeEach(async () => {
@@ -28,7 +28,6 @@ Deno.test.afterAll(async () => {
 Deno.test({
   name: "Validation: Schema - should validate user data on insert",
   async fn() {
-
     const invalidUser = {
       name: "Invalid User",
       email: "not-an-email", // Invalid email
@@ -50,7 +49,6 @@ Deno.test({
 Deno.test({
   name: "Validation: Update - should reject invalid email in update",
   async fn() {
-
     // Insert a user for this test
     const newUser: UserInsert = {
       name: "Validation Test User",
@@ -79,7 +77,6 @@ Deno.test({
 Deno.test({
   name: "Validation: Update - should reject negative age in update",
   async fn() {
-
     // Insert a user for this test
     const newUser: UserInsert = {
       name: "Age Validation Test User",
@@ -108,7 +105,6 @@ Deno.test({
 Deno.test({
   name: "Validation: Update - should reject invalid name type in update",
   async fn() {
-
     // Insert a user for this test
     const newUser: UserInsert = {
       name: "Type Validation Test User",
@@ -137,7 +133,6 @@ Deno.test({
 Deno.test({
   name: "Validation: Update - should accept valid partial updates",
   async fn() {
-
     // Insert a user for this test
     const newUser: UserInsert = {
       name: "Valid Update Test User",
@@ -168,5 +163,3 @@ Deno.test({
   sanitizeResources: false,
   sanitizeOps: false,
 });
-
-

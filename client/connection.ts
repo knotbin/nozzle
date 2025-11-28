@@ -1,9 +1,9 @@
-import { type Db, type MongoClientOptions, MongoClient } from "mongodb";
+import { type Db, MongoClient, type MongoClientOptions } from "mongodb";
 import { ConnectionError } from "../errors.ts";
 
 /**
  * Connection management module
- * 
+ *
  * Handles MongoDB connection lifecycle including connect, disconnect,
  * and connection state management.
  */
@@ -20,15 +20,15 @@ let connection: Connection | null = null;
 
 /**
  * Connect to MongoDB with connection pooling, retry logic, and resilience options
- * 
+ *
  * The MongoDB driver handles connection pooling and automatic retries.
  * Retry logic is enabled by default for both reads and writes in MongoDB 4.2+.
- * 
+ *
  * @param uri - MongoDB connection string
  * @param dbName - Name of the database to connect to
  * @param options - Connection options (pooling, retries, timeouts, etc.)
  * @returns Connection object with client and db
- * 
+ *
  * @example
  * Basic connection with pooling:
  * ```ts
@@ -40,7 +40,7 @@ let connection: Connection | null = null;
  *   socketTimeoutMS: 45000,
  * });
  * ```
- * 
+ *
  * @example
  * Production-ready connection with retry logic and resilience:
  * ```ts
@@ -48,20 +48,20 @@ let connection: Connection | null = null;
  *   // Connection pooling
  *   maxPoolSize: 10,
  *   minPoolSize: 2,
- *   
+ *
  *   // Automatic retry logic (enabled by default)
  *   retryReads: true,        // Retry failed read operations
  *   retryWrites: true,       // Retry failed write operations
- *   
+ *
  *   // Timeouts
  *   connectTimeoutMS: 10000,  // Initial connection timeout
  *   socketTimeoutMS: 45000,   // Socket operation timeout
  *   serverSelectionTimeoutMS: 10000, // Server selection timeout
- *   
+ *
  *   // Connection resilience
  *   maxIdleTimeMS: 30000,     // Close idle connections
  *   heartbeatFrequencyMS: 10000, // Server health check interval
- *   
+ *
  *   // Optional: Compression for reduced bandwidth
  *   compressors: ['snappy', 'zlib'],
  * });
@@ -85,8 +85,10 @@ export async function connect(
     return connection;
   } catch (error) {
     throw new ConnectionError(
-      `Failed to connect to MongoDB: ${error instanceof Error ? error.message : String(error)}`,
-      uri
+      `Failed to connect to MongoDB: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      uri,
     );
   }
 }
@@ -103,7 +105,7 @@ export async function disconnect(): Promise<void> {
 
 /**
  * Get the current database connection
- * 
+ *
  * @returns MongoDB Db instance
  * @throws {ConnectionError} If not connected
  * @internal
@@ -117,7 +119,7 @@ export function getDb(): Db {
 
 /**
  * Get the current connection state
- * 
+ *
  * @returns Connection object or null if not connected
  * @internal
  */

@@ -1,5 +1,5 @@
 import type { z } from "@zod/zod";
-import type { Document, ObjectId, IndexDescription } from "mongodb";
+import type { Document, IndexDescription, ObjectId } from "mongodb";
 
 /**
  * Type alias for Zod schema objects
@@ -11,13 +11,12 @@ export type Schema = z.ZodObject<z.ZodRawShape>;
  */
 export type Infer<T extends Schema> = z.infer<T> & Document;
 
-
 /**
  * Infer the model type from a Zod schema, including MongoDB Document and ObjectId
  */
 export type InferModel<T extends Schema> = Infer<T> & {
-    _id?: ObjectId;
-  };
+  _id?: ObjectId;
+};
 
 /**
  * Infer the input type for a Zod schema (handles defaults)
@@ -31,7 +30,7 @@ export type Indexes = IndexDescription[];
 
 /**
  * Complete definition of a model, including schema and indexes
- * 
+ *
  * @example
  * ```ts
  * const userDef: ModelDef<typeof userSchema> = {

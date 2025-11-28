@@ -12,7 +12,7 @@ let UserModel: Model<typeof import("./utils.ts").userSchema>;
 
 Deno.test.beforeAll(async () => {
   await setupTestDb();
-  UserModel = createUserModel();
+  UserModel = createUserModel("users_index");
 });
 
 Deno.test.beforeEach(async () => {
@@ -162,4 +162,3 @@ Deno.test({
   sanitizeResources: false,
   sanitizeOps: false,
 });
-

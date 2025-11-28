@@ -14,7 +14,7 @@ let UserModel: Model<typeof userSchema>;
 
 Deno.test.beforeAll(async () => {
   await setupTestDb();
-  UserModel = createUserModel();
+  UserModel = createUserModel("users_features");
 });
 
 Deno.test.beforeEach(async () => {
@@ -28,7 +28,6 @@ Deno.test.afterAll(async () => {
 Deno.test({
   name: "Features: Default Values - should handle default createdAt",
   async fn() {
-
     const newUser: UserInsert = {
       name: "Default Test User",
       email: "default@example.com",
@@ -49,5 +48,3 @@ Deno.test({
   sanitizeResources: false,
   sanitizeOps: false,
 });
-
-

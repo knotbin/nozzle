@@ -2,10 +2,10 @@ import { assertEquals, assertExists, assertRejects } from "@std/assert";
 import {
   connect,
   disconnect,
-  Model,
-  withTransaction,
-  startSession,
   endSession,
+  Model,
+  startSession,
+  withTransaction,
 } from "../mod.ts";
 import { z } from "@zod/zod";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
@@ -15,9 +15,9 @@ let replSet: MongoMemoryReplSet | null = null;
 async function setupTestReplSet() {
   if (!replSet) {
     replSet = await MongoMemoryReplSet.create({
-      replSet: { 
-        count: 3,
-        storageEngine: 'wiredTiger' // Required for transactions
+      replSet: {
+        count: 1,
+        storageEngine: "wiredTiger", // Required for transactions
       },
     });
   }
@@ -63,27 +63,27 @@ Deno.test({
   async fn() {
     const uri = await setupTestReplSet();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
     const OrderModel = new Model("orders", orderSchema);
-    
+
     const result = await withTransaction(async (session) => {
       const user = await UserModel.insertOne(
         { name: "Alice", email: "alice@example.com", balance: 100 },
-        { session }
+        { session },
       );
-      
+
       const order = await OrderModel.insertOne(
         { userId: user.insertedId.toString(), amount: 50 },
-        { session }
+        { session },
       );
-      
+
       return { userId: user.insertedId, orderId: order.insertedId };
     });
-    
+
     assertExists(result.userId);
     assertExists(result.orderId);
-    
+
     // Verify data was committed
     const users = await UserModel.find({});
     const orders = await OrderModel.find({});
@@ -99,25 +99,25 @@ Deno.test({
   async fn() {
     const uri = await setupTestReplSet();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     await assertRejects(
       async () => {
         await withTransaction(async (session) => {
           await UserModel.insertOne(
             { name: "Bob", email: "bob@example.com" },
-            { session }
+            { session },
           );
-          
+
           // This will fail and abort the transaction
           throw new Error("Simulated error");
         });
       },
       Error,
-      "Simulated error"
+      "Simulated error",
     );
-    
+
     // Verify no data was committed
     const users = await UserModel.find({});
     assertEquals(users.length, 0);
@@ -131,25 +131,25 @@ Deno.test({
   async fn() {
     const uri = await setupTestReplSet();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     const result = await withTransaction(async (session) => {
       const users = [];
-      
+
       for (let i = 0; i < 5; i++) {
         const user = await UserModel.insertOne(
           { name: `User${i}`, email: `user${i}@example.com` },
-          { session }
+          { session },
         );
         users.push(user.insertedId);
       }
-      
+
       return users;
     });
-    
+
     assertEquals(result.length, 5);
-    
+
     // Verify all users were created
     const users = await UserModel.find({});
     assertEquals(users.length, 5);
@@ -159,38 +159,43 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Transactions: withTransaction - should support read and write operations",
+  name:
+    "Transactions: withTransaction - should support read and write operations",
   async fn() {
     const uri = await setupTestReplSet();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     // Insert initial user
     const initialUser = await UserModel.insertOne({
       name: "Charlie",
       email: "charlie@example.com",
       balance: 100,
     });
-    
+
     const result = await withTransaction(async (session) => {
       // Read
-      const user = await UserModel.findById(initialUser.insertedId, { session });
+      const user = await UserModel.findById(initialUser.insertedId, {
+        session,
+      });
       assertExists(user);
-      
+
       // Update
       await UserModel.updateOne(
         { _id: initialUser.insertedId },
         { balance: 150 },
-        { session }
+        { session },
       );
-      
+
       // Read again
-      const updatedUser = await UserModel.findById(initialUser.insertedId, { session });
-      
+      const updatedUser = await UserModel.findById(initialUser.insertedId, {
+        session,
+      });
+
       return updatedUser?.balance;
     });
-    
+
     assertEquals(result, 150);
   },
   sanitizeResources: false,
@@ -202,28 +207,28 @@ Deno.test({
   async fn() {
     const uri = await setupTestReplSet();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     await assertRejects(
       async () => {
         await withTransaction(async (session) => {
           // Valid insert
           await UserModel.insertOne(
             { name: "Valid", email: "valid@example.com" },
-            { session }
+            { session },
           );
-          
+
           // Invalid insert (will throw ValidationError)
           await UserModel.insertOne(
             { name: "", email: "invalid" },
-            { session }
+            { session },
           );
         });
       },
-      Error // ValidationError
+      Error, // ValidationError
     );
-    
+
     // Transaction should have been aborted, no data should exist
     const users = await UserModel.find({});
     assertEquals(users.length, 0);
@@ -233,30 +238,31 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Transactions: Manual session - should work with manual session management",
+  name:
+    "Transactions: Manual session - should work with manual session management",
   async fn() {
     const uri = await setupTestReplSet();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     const session = startSession();
-    
+
     try {
       await session.withTransaction(async () => {
         await UserModel.insertOne(
           { name: "Dave", email: "dave@example.com" },
-          { session }
+          { session },
         );
         await UserModel.insertOne(
           { name: "Eve", email: "eve@example.com" },
-          { session }
+          { session },
         );
       });
     } finally {
       await endSession(session);
     }
-    
+
     // Verify both users were created
     const users = await UserModel.find({});
     assertEquals(users.length, 2);
@@ -270,24 +276,26 @@ Deno.test({
   async fn() {
     const uri = await setupTestReplSet();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     // Insert initial users
     await UserModel.insertMany([
       { name: "User1", email: "user1@example.com" },
       { name: "User2", email: "user2@example.com" },
       { name: "User3", email: "user3@example.com" },
     ]);
-    
+
     await withTransaction(async (session) => {
       // Delete one user
       await UserModel.deleteOne({ name: "User1" }, { session });
-      
+
       // Delete multiple users
-      await UserModel.delete({ name: { $in: ["User2", "User3"] } }, { session });
+      await UserModel.delete({ name: { $in: ["User2", "User3"] } }, {
+        session,
+      });
     });
-    
+
     // Verify all were deleted
     const users = await UserModel.find({});
     assertEquals(users.length, 0);
@@ -301,14 +309,14 @@ Deno.test({
   async fn() {
     const uri = await setupTestReplSet();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     const result = await withTransaction(
       async (session) => {
         await UserModel.insertOne(
           { name: "Frank", email: "frank@example.com" },
-          { session }
+          { session },
         );
         return "success";
       },
@@ -316,11 +324,11 @@ Deno.test({
         readPreference: "primary",
         readConcern: { level: "snapshot" },
         writeConcern: { w: "majority" },
-      }
+      },
     );
-    
+
     assertEquals(result, "success");
-    
+
     const users = await UserModel.find({});
     assertEquals(users.length, 1);
   },

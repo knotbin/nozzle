@@ -8,7 +8,8 @@ A lightweight, type-safe ODM for MongoDB in TypeScript
 
 ## ✨ Features
 
-- **Schema-first:** Define and validate collections using [Zod](https://zod.dev).
+- **Schema-first:** Define and validate collections using
+  [Zod](https://zod.dev).
 - **Type-safe operations:** Auto-complete and strict typings for `insert`,
   `find`, `update`, and `delete`.
 - **Minimal & modular:** No decorators or magic. Just clean, composable APIs.
@@ -51,13 +52,7 @@ export type User = z.infer<typeof userSchema>;
 
 ```ts
 // src/index.ts
-import {
-  connect,
-  disconnect,
-  InferModel,
-  Input,
-  Model,
-} from "@nozzle/nozzle";
+import { connect, disconnect, InferModel, Input, Model } from "@nozzle/nozzle";
 import { userSchema } from "./schemas/user";
 import { ObjectId } from "mongodb"; // v6+ driver recommended
 
@@ -67,36 +62,36 @@ type UserInsert = Input<typeof userSchema>;
 async function main() {
   // Basic connection
   await connect("mongodb://localhost:27017", "your_database_name");
-  
+
   // Or with connection pooling options
   await connect("mongodb://localhost:27017", "your_database_name", {
-    maxPoolSize: 10,        // Maximum connections in pool
-    minPoolSize: 2,          // Minimum connections in pool
-    maxIdleTimeMS: 30000,    // Close idle connections after 30s
+    maxPoolSize: 10, // Maximum connections in pool
+    minPoolSize: 2, // Minimum connections in pool
+    maxIdleTimeMS: 30000, // Close idle connections after 30s
     connectTimeoutMS: 10000, // Connection timeout
-    socketTimeoutMS: 45000,  // Socket timeout
+    socketTimeoutMS: 45000, // Socket timeout
   });
-  
+
   // Production-ready connection with retry logic and resilience
   await connect("mongodb://localhost:27017", "your_database_name", {
     // Connection pooling
     maxPoolSize: 10,
     minPoolSize: 2,
-    
+
     // Automatic retry logic (enabled by default)
-    retryReads: true,        // Retry failed read operations
-    retryWrites: true,       // Retry failed write operations
-    
+    retryReads: true, // Retry failed read operations
+    retryWrites: true, // Retry failed write operations
+
     // Timeouts
-    connectTimeoutMS: 10000,  // Initial connection timeout
-    socketTimeoutMS: 45000,   // Socket operation timeout
+    connectTimeoutMS: 10000, // Initial connection timeout
+    socketTimeoutMS: 45000, // Socket operation timeout
     serverSelectionTimeoutMS: 10000, // Server selection timeout
-    
+
     // Connection resilience
-    maxIdleTimeMS: 30000,     // Close idle connections
+    maxIdleTimeMS: 30000, // Close idle connections
     heartbeatFrequencyMS: 10000, // Server health check interval
   });
-  
+
   const UserModel = new Model("users", userSchema);
 
   // Your operations go here
@@ -210,26 +205,28 @@ const result = await withTransaction(async (session) => {
   // All operations in this callback are part of the same transaction
   const user = await UserModel.insertOne(
     { name: "Alice", email: "alice@example.com" },
-    { session } // Pass session to each operation
+    { session }, // Pass session to each operation
   );
-  
+
   const order = await OrderModel.insertOne(
     { userId: user.insertedId, total: 100 },
-    { session }
+    { session },
   );
-  
+
   // If any operation fails, the entire transaction is automatically aborted
   // If callback succeeds, transaction is automatically committed
   return { user, order };
 });
 
 // Manual session management (for advanced use cases)
-import { startSession, endSession } from "@nozzle/nozzle";
+import { endSession, startSession } from "@nozzle/nozzle";
 
 const session = startSession();
 try {
   await session.withTransaction(async () => {
-    await UserModel.insertOne({ name: "Bob", email: "bob@example.com" }, { session });
+    await UserModel.insertOne({ name: "Bob", email: "bob@example.com" }, {
+      session,
+    });
     await UserModel.updateOne({ name: "Alice" }, { balance: 50 }, { session });
   });
 } finally {
@@ -237,7 +234,7 @@ try {
 }
 
 // Error Handling
-import { ValidationError, ConnectionError } from "@nozzle/nozzle";
+import { ConnectionError, ValidationError } from "@nozzle/nozzle";
 
 try {
   await UserModel.insertOne({ name: "", email: "invalid" });
@@ -261,6 +258,7 @@ try {
 ## 🗺️ Roadmap
 
 ### 🔴 Critical (Must Have)
+
 - [x] Transactions support
 - [x] Connection retry logic
 - [x] Improved error handling
@@ -268,6 +266,7 @@ try {
 - [x] Connection pooling configuration
 
 ### 🟡 Important (Should Have)
+
 - [x] Index management
 - [ ] Middleware/hooks system
 - [ ] Relationship/population support
@@ -275,13 +274,15 @@ try {
 - [ ] Comprehensive edge case testing
 
 ### 🟢 Nice to Have
+
 - [x] Pagination support
 - [ ] Plugin system
 - [ ] Query builder API
 - [ ] Virtual fields
 - [ ] Document/static methods
 
-For detailed production readiness assessment, see [PRODUCTION_READINESS_ASSESSMENT.md](./PRODUCTION_READINESS_ASSESSMENT.md).
+For detailed production readiness assessment, see
+[PRODUCTION_READINESS_ASSESSMENT.md](./PRODUCTION_READINESS_ASSESSMENT.md).
 
 ---
 

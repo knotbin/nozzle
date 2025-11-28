@@ -1,12 +1,12 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { z } from "@zod/zod";
-import { connect, disconnect, Model } from "../mod.ts";
+import { Model } from "../mod.ts";
 import { applyDefaultsForUpsert } from "../model/validation.ts";
-import { MongoMemoryServer } from "mongodb-memory-server-core";
+import { setupTestDb, teardownTestDb } from "./utils.ts";
 
 /**
  * Test suite for default value handling in different operation types
- * 
+ *
  * This tests the three main cases:
  * 1. Plain inserts - defaults applied directly
  * 2. Updates without upsert - defaults NOT applied
@@ -26,12 +26,9 @@ const productSchema = z.object({
 });
 
 let ProductModel: Model<typeof productSchema>;
-let mongoServer: MongoMemoryServer;
 
 Deno.test.beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
-  await connect(uri, "test_defaults_db");
+  await setupTestDb();
   ProductModel = new Model("test_products_defaults", productSchema);
 });
 
@@ -41,8 +38,7 @@ Deno.test.beforeEach(async () => {
 
 Deno.test.afterAll(async () => {
   await ProductModel.delete({});
-  await disconnect();
-  await mongoServer.stop();
+  await teardownTestDb();
 });
 
 Deno.test({
@@ -60,7 +56,7 @@ Deno.test({
     // Verify defaults were applied
     const product = await ProductModel.findById(result.insertedId);
     assertExists(product);
-    
+
     assertEquals(product.name, "Widget");
     assertEquals(product.price, 29.99);
     assertEquals(product.category, "general"); // default
@@ -84,19 +80,19 @@ Deno.test({
       createdAt: new Date("2023-01-01"),
       tags: ["test"],
     });
-    
+
     assertExists(insertResult.insertedId);
 
     // Now update it - defaults should NOT be applied
     await ProductModel.updateOne(
       { _id: insertResult.insertedId },
-      { price: 24.99 }
+      { price: 24.99 },
       // No upsert flag
     );
 
     const updated = await ProductModel.findById(insertResult.insertedId);
     assertExists(updated);
-    
+
     assertEquals(updated.price, 24.99); // updated
     assertEquals(updated.category, "electronics"); // unchanged
     assertEquals(updated.inStock, false); // unchanged
@@ -107,13 +103,14 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Defaults: Case 3 - Upsert that creates applies defaults via $setOnInsert",
+  name:
+    "Defaults: Case 3 - Upsert that creates applies defaults via $setOnInsert",
   async fn() {
     // Upsert with a query that won't match - will create new document
     const result = await ProductModel.updateOne(
       { name: "NonExistent" },
       { price: 39.99 },
-      { upsert: true }
+      { upsert: true },
     );
 
     assertEquals(result.upsertedCount, 1);
@@ -122,7 +119,7 @@ Deno.test({
     // Verify the created document has defaults applied
     const product = await ProductModel.findOne({ name: "NonExistent" });
     assertExists(product);
-    
+
     assertEquals(product.price, 39.99); // from $set
     assertEquals(product.name, "NonExistent"); // from query
     assertEquals(product.category, "general"); // default via $setOnInsert
@@ -153,7 +150,7 @@ Deno.test({
     const result = await ProductModel.updateOne(
       { name: "ExistingProduct" },
       { price: 44.99 },
-      { upsert: true }
+      { upsert: true },
     );
 
     assertEquals(result.matchedCount, 1);
@@ -163,7 +160,7 @@ Deno.test({
     // Verify defaults were NOT applied (existing values preserved)
     const product = await ProductModel.findOne({ name: "ExistingProduct" });
     assertExists(product);
-    
+
     assertEquals(product.price, 44.99); // updated via $set
     assertEquals(product.category, "premium"); // preserved (not overwritten with default)
     assertEquals(product.inStock, false); // preserved
@@ -195,12 +192,12 @@ Deno.test({
         name: "Replaced",
         price: 15.0,
         // category, inStock, createdAt, tags not provided - defaults should apply
-      }
+      },
     );
 
     const product = await ProductModel.findById(insertResult.insertedId);
     assertExists(product);
-    
+
     assertEquals(product.name, "Replaced");
     assertEquals(product.price, 15.0);
     assertEquals(product.category, "general"); // default applied
@@ -223,7 +220,7 @@ Deno.test({
         price: 99.99,
         // Missing optional fields - defaults should apply
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     assertEquals(result.upsertedCount, 1);
@@ -231,7 +228,7 @@ Deno.test({
 
     const product = await ProductModel.findOne({ name: "NewViaReplace" });
     assertExists(product);
-    
+
     assertEquals(product.name, "NewViaReplace");
     assertEquals(product.price, 99.99);
     assertEquals(product.category, "general"); // default
@@ -254,14 +251,14 @@ Deno.test({
         category: "custom", // Explicitly setting a field that has a default
         // inStock not set - should get default
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     assertEquals(result.upsertedCount, 1);
 
     const product = await ProductModel.findOne({ name: "CustomDefaults" });
     assertExists(product);
-    
+
     assertEquals(product.name, "CustomDefaults"); // from query
     assertEquals(product.price, 25.0); // from $set
     assertEquals(product.category, "custom"); // from $set (NOT default)
@@ -292,7 +289,7 @@ Deno.test({
       assertExists(product.createdAt);
       assertEquals(product.inStock, true);
       assertEquals(product.tags, []);
-      
+
       if (product.name === "Bulk2") {
         assertEquals(product.category, "special");
       } else {
@@ -305,7 +302,8 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Defaults: applyDefaultsForUpsert preserves existing $setOnInsert values",
+  name:
+    "Defaults: applyDefaultsForUpsert preserves existing $setOnInsert values",
   fn() {
     const schema = z.object({
       name: z.string(),
@@ -328,7 +326,8 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Defaults: applyDefaultsForUpsert keeps query equality fields untouched",
+  name:
+    "Defaults: applyDefaultsForUpsert keeps query equality fields untouched",
   fn() {
     const schema = z.object({
       status: z.string().default("pending"),
@@ -349,12 +348,13 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Defaults: findOneAndUpdate with upsert preserves query equality fields",
+  name:
+    "Defaults: findOneAndUpdate with upsert preserves query equality fields",
   async fn() {
     await ProductModel.findOneAndUpdate(
       { name: "FindOneUpsert", category: "special" },
       { price: 12.5 },
-      { upsert: true }
+      { upsert: true },
     );
 
     const product = await ProductModel.findOne({ name: "FindOneUpsert" });
@@ -379,12 +379,14 @@ Deno.test({
         name: "FindOneReplaceUpsert",
         price: 77.0,
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     assertExists(result.lastErrorObject?.upserted);
 
-    const product = await ProductModel.findOne({ name: "FindOneReplaceUpsert" });
+    const product = await ProductModel.findOne({
+      name: "FindOneReplaceUpsert",
+    });
     assertExists(product);
 
     assertEquals(product.name, "FindOneReplaceUpsert");

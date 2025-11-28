@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "runtime": "Deno/2.5.6 aarch64-apple-darwin",
+  "cpu": "Apple M2 Pro",
+  "benches": [
+    {
+      "origin": "file:///Users/knotbin/Developer/nozzle/bench/ops_bench.ts",
+      "group": "insertOne",
+      "name": "mongoose insertOne",
+      "baseline": false,
+      "results": [
+        {
+          "ok": {
+            "n": 3733,
+            "min": 85750.0,
+            "max": 495459.0,
+            "avg": 134257.0,
+            "p75": 128917.0,
+            "p99": 313291.0,
+            "p995": 344708.0,
+            "p999": 446833.0,
+            "highPrecision": true,
+            "usedExplicitTimers": false
+          }
+        }
+      ]
+    },
+    {
+      "origin": "file:///Users/knotbin/Developer/nozzle/bench/ops_bench.ts",
+      "group": "insertOne",
+      "name": "nozzle insertOne",
+      "baseline": true,
+      "results": [
+        {
+          "ok": {
+            "n": 6354,
+            "min": 52667.0,
+            "max": 453875.0,
+            "avg": 78809.0,
+            "p75": 81417.0,
+            "p99": 149417.0,
+            "p995": 201459.0,
+            "p999": 274750.0,
+            "highPrecision": true,
+            "usedExplicitTimers": false
+          }
+        }
+      ]
+    },
+    {
+      "origin": "file:///Users/knotbin/Developer/nozzle/bench/ops_bench.ts",
+      "group": "findById",
+      "name": "mongoose findById",
+      "baseline": false,
+      "results": [
+        {
+          "ok": {
+            "n": 3707,
+            "min": 113875.0,
+            "max": 510125.0,
+            "avg": 135223.0,
+            "p75": 137167.0,
+            "p99": 263958.0,
+            "p995": 347458.0,
+            "p999": 428500.0,
+            "highPrecision": true,
+            "usedExplicitTimers": false
+          }
+        }
+      ]
+    },
+    {
+      "origin": "file:///Users/knotbin/Developer/nozzle/bench/ops_bench.ts",
+      "group": "findById",
+      "name": "nozzle findById",
+      "baseline": true,
+      "results": [
+        {
+          "ok": {
+            "n": 6045,
+            "min": 70750.0,
+            "max": 1008792.0,
+            "avg": 82859.0,
+            "p75": 83750.0,
+            "p99": 132250.0,
+            "p995": 183500.0,
+            "p999": 311833.0,
+            "highPrecision": true,
+            "usedExplicitTimers": false
+          }
+        }
+      ]
+    },
+    {
+      "origin": "file:///Users/knotbin/Developer/nozzle/bench/ops_bench.ts",
+      "group": "updateOne",
+      "name": "mongoose updateOne",
+      "baseline": false,
+      "results": [
+        {
+          "ok": {
+            "n": 4123,
+            "min": 98500.0,
+            "max": 717334.0,
+            "avg": 121572.0,
+            "p75": 123292.0,
+            "p99": 179375.0,
+            "p995": 281417.0,
+            "p999": 342625.0,
+            "highPrecision": true,
+            "usedExplicitTimers": false
+          }
+        }
+      ]
+    },
+    {
+      "origin": "file:///Users/knotbin/Developer/nozzle/bench/ops_bench.ts",
+      "group": "updateOne",
+      "name": "nozzle updateOne",
+      "baseline": true,
+      "results": [
+        {
+          "ok": {
+            "n": 6550,
+            "min": 53833.0,
+            "max": 401667.0,
+            "avg": 76456.0,
+            "p75": 76834.0,
+            "p99": 118292.0,
+            "p995": 181500.0,
+            "p999": 299958.0,
+            "highPrecision": true,
+            "usedExplicitTimers": false
+          }
+        }
+      ]
+    }
+  ]
+}

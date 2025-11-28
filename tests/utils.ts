@@ -13,35 +13,60 @@ export type UserInsert = Input<typeof userSchema>;
 
 let mongoServer: MongoMemoryServer | null = null;
 let isSetup = false;
+let setupRefCount = 0;
+let activeDbName: string | null = null;
 
-export async function setupTestDb() {
-  if (!isSetup) {
-    // Start MongoDB Memory Server
+export async function setupTestDb(dbName = "test_db") {
+  setupRefCount++;
+
+  // If we're already connected, just share the same database
+  if (isSetup) {
+    if (activeDbName !== dbName) {
+      throw new Error(
+        `Test DB already initialized for ${activeDbName}, requested ${dbName}`,
+      );
+    }
+    return;
+  }
+
+  try {
     mongoServer = await MongoMemoryServer.create();
     const uri = mongoServer.getUri();
-    
-    // Connect to the in-memory database
-    await connect(uri, "test_db");
+
+    await connect(uri, dbName);
+    activeDbName = dbName;
     isSetup = true;
+  } catch (error) {
+    // Roll back refcount if setup failed so future attempts can retry
+    setupRefCount = Math.max(0, setupRefCount - 1);
+    throw error;
   }
 }
 
 export async function teardownTestDb() {
-  if (isSetup) {
+  if (setupRefCount === 0) {
+    return;
+  }
+
+  setupRefCount = Math.max(0, setupRefCount - 1);
+
+  if (isSetup && setupRefCount === 0) {
     await disconnect();
     if (mongoServer) {
       await mongoServer.stop();
       mongoServer = null;
     }
+    activeDbName = null;
     isSetup = false;
   }
 }
 
-export function createUserModel(): Model<typeof userSchema> {
-  return new Model("users", userSchema);
+export function createUserModel(
+  collectionName = "users",
+): Model<typeof userSchema> {
+  return new Model(collectionName, userSchema);
 }
 
 export async function cleanupCollection(model: Model<typeof userSchema>) {
   await model.delete({});
 }
-

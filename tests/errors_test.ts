@@ -1,10 +1,10 @@
 import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
 import {
   connect,
+  ConnectionError,
   disconnect,
   Model,
   ValidationError,
-  ConnectionError,
 } from "../mod.ts";
 import { z } from "@zod/zod";
 import { MongoMemoryServer } from "mongodb-memory-server-core";
@@ -41,15 +41,15 @@ Deno.test({
   async fn() {
     const uri = await setupTestServer();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     await assertRejects(
       async () => {
         await UserModel.insertOne({ name: "", email: "invalid" });
       },
       ValidationError,
-      "Validation failed on insert"
+      "Validation failed on insert",
     );
   },
   sanitizeResources: false,
@@ -61,9 +61,9 @@ Deno.test({
   async fn() {
     const uri = await setupTestServer();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     try {
       await UserModel.insertOne({ name: "", email: "invalid" });
       throw new Error("Should have thrown ValidationError");
@@ -72,7 +72,7 @@ Deno.test({
       assertEquals(error.operation, "insert");
       assertExists(error.issues);
       assert(error.issues.length > 0);
-      
+
       // Check field errors
       const fieldErrors = error.getFieldErrors();
       assertExists(fieldErrors.name);
@@ -88,15 +88,15 @@ Deno.test({
   async fn() {
     const uri = await setupTestServer();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     await assertRejects(
       async () => {
         await UserModel.updateOne({ name: "test" }, { email: "invalid-email" });
       },
       ValidationError,
-      "Validation failed on update"
+      "Validation failed on update",
     );
   },
   sanitizeResources: false,
@@ -108,18 +108,21 @@ Deno.test({
   async fn() {
     const uri = await setupTestServer();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     // First insert a valid document
     await UserModel.insertOne({ name: "Test", email: "test@example.com" });
-    
+
     await assertRejects(
       async () => {
-        await UserModel.replaceOne({ name: "Test" }, { name: "", email: "invalid" });
+        await UserModel.replaceOne({ name: "Test" }, {
+          name: "",
+          email: "invalid",
+        });
       },
       ValidationError,
-      "Validation failed on replace"
+      "Validation failed on replace",
     );
   },
   sanitizeResources: false,
@@ -131,16 +134,16 @@ Deno.test({
   async fn() {
     const uri = await setupTestServer();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     try {
       await UserModel.updateOne({ name: "test" }, { age: -5 });
       throw new Error("Should have thrown ValidationError");
     } catch (error) {
       assert(error instanceof ValidationError);
       assertEquals(error.operation, "update");
-      
+
       const fieldErrors = error.getFieldErrors();
       assertExists(fieldErrors.age);
     }
@@ -154,13 +157,17 @@ Deno.test({
   async fn() {
     await assertRejects(
       async () => {
-        await connect("mongodb://invalid-host-that-does-not-exist:27017", "test_db", {
-          serverSelectionTimeoutMS: 1000, // 1 second timeout
-          connectTimeoutMS: 1000,
-        });
+        await connect(
+          "mongodb://invalid-host-that-does-not-exist:27017",
+          "test_db",
+          {
+            serverSelectionTimeoutMS: 1000, // 1 second timeout
+            connectTimeoutMS: 1000,
+          },
+        );
       },
       ConnectionError,
-      "Failed to connect to MongoDB"
+      "Failed to connect to MongoDB",
     );
   },
   sanitizeResources: false,
@@ -171,14 +178,21 @@ Deno.test({
   name: "Errors: ConnectionError - should include URI in error",
   async fn() {
     try {
-      await connect("mongodb://invalid-host-that-does-not-exist:27017", "test_db", {
-        serverSelectionTimeoutMS: 1000, // 1 second timeout
-        connectTimeoutMS: 1000,
-      });
+      await connect(
+        "mongodb://invalid-host-that-does-not-exist:27017",
+        "test_db",
+        {
+          serverSelectionTimeoutMS: 1000, // 1 second timeout
+          connectTimeoutMS: 1000,
+        },
+      );
       throw new Error("Should have thrown ConnectionError");
     } catch (error) {
       assert(error instanceof ConnectionError);
-      assertEquals(error.uri, "mongodb://invalid-host-that-does-not-exist:27017");
+      assertEquals(
+        error.uri,
+        "mongodb://invalid-host-that-does-not-exist:27017",
+      );
     }
   },
   sanitizeResources: false,
@@ -186,13 +200,14 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Errors: ConnectionError - should throw when getDb called without connection",
+  name:
+    "Errors: ConnectionError - should throw when getDb called without connection",
   async fn() {
     // Make sure not connected
     await disconnect();
-    
+
     const { getDb } = await import("../client/connection.ts");
-    
+
     try {
       getDb();
       throw new Error("Should have thrown ConnectionError");
@@ -210,9 +225,9 @@ Deno.test({
   async fn() {
     const uri = await setupTestServer();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     try {
       await UserModel.insertOne({
         name: "",
@@ -222,14 +237,14 @@ Deno.test({
       throw new Error("Should have thrown ValidationError");
     } catch (error) {
       assert(error instanceof ValidationError);
-      
+
       const fieldErrors = error.getFieldErrors();
-      
+
       // Each field should have its own errors
       assert(Array.isArray(fieldErrors.name));
       assert(Array.isArray(fieldErrors.email));
       assert(Array.isArray(fieldErrors.age));
-      
+
       // Verify error messages are present
       assert(fieldErrors.name.length > 0);
       assert(fieldErrors.email.length > 0);
@@ -245,9 +260,9 @@ Deno.test({
   async fn() {
     const uri = await setupTestServer();
     await connect(uri, "test_db");
-    
+
     const UserModel = new Model("users", userSchema);
-    
+
     try {
       await UserModel.insertOne({ name: "", email: "invalid" });
     } catch (error) {

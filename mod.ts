@@ -1,23 +1,23 @@
-export type { Schema, Infer, Input } from "./types.ts";
-export { 
-  connect, 
-  disconnect, 
-  healthCheck, 
-  startSession,
+export type { Infer, Input, Schema } from "./types.ts";
+export {
+  connect,
+  type ConnectOptions,
+  disconnect,
   endSession,
+  healthCheck,
+  type HealthCheckResult,
+  startSession,
   withTransaction,
-  type ConnectOptions, 
-  type HealthCheckResult 
 } from "./client/index.ts";
 export { Model } from "./model/index.ts";
 export {
-  NozzleError,
-  ValidationError,
-  ConnectionError,
-  ConfigurationError,
-  DocumentNotFoundError,
-  OperationError,
   AsyncValidationError,
+  ConfigurationError,
+  ConnectionError,
+  DocumentNotFoundError,
+  NozzleError,
+  OperationError,
+  ValidationError,
 } from "./errors.ts";
 
 // Re-export MongoDB types that users might need

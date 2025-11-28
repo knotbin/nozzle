@@ -2,14 +2,14 @@ import { getConnection } from "./connection.ts";
 
 /**
  * Health check module
- * 
+ *
  * Provides functionality for monitoring MongoDB connection health
  * including ping operations and response time measurement.
  */
 
 /**
  * Health check details of the MongoDB connection
- * 
+ *
  * @property healthy - Overall health status of the connection
  * @property connected - Whether a connection is established
  * @property responseTimeMs - Response time in milliseconds (if connection is healthy)
@@ -26,12 +26,12 @@ export interface HealthCheckResult {
 
 /**
  * Check the health of the MongoDB connection
- * 
+ *
  * Performs a ping operation to verify the database is responsive
  * and returns detailed health information including response time.
- * 
+ *
  * @returns Health check result with status and metrics
- * 
+ *
  * @example
  * ```ts
  * const health = await healthCheck();
